@@ -5,8 +5,11 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 type Theme = 'light' | 'dark';
 
 interface ThemeSettings {
-  glassEffect: boolean;    // 毛玻璃效果
-  transparency: number;    // 透明度 0-100
+  glassEffect: boolean;      // 毛玻璃效果
+  transparency: number;      // 透明度 0-100
+  backgroundImage: string;   // 背景图片 URL
+  backgroundBlur: number;    // 背景模糊程度 0-20
+  backgroundScale: number;   // 背景缩放 100-200
 }
 
 interface ThemeContextType {
@@ -21,7 +24,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const DEFAULT_SETTINGS: ThemeSettings = {
   glassEffect: true,
-  transparency: 80,
+  transparency: 85,
+  backgroundImage: '',
+  backgroundBlur: 0,
+  backgroundScale: 100,
 };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -46,7 +52,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     if (savedSettings) {
       try {
-        setSettings(JSON.parse(savedSettings));
+        const parsed = JSON.parse(savedSettings);
+        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
       } catch {
         // Ignore parse errors
       }
@@ -68,7 +75,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('nanobanana-theme', theme);
   }, [theme, mounted]);
 
-  // 设置变化时保存
+  // 设置变化时保存并应用
   useEffect(() => {
     if (!mounted) return;
     localStorage.setItem('nanobanana-theme-settings', JSON.stringify(settings));
@@ -77,6 +84,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     root.style.setProperty('--glass-blur', settings.glassEffect ? '16px' : '0px');
     root.style.setProperty('--bg-opacity', String(settings.transparency / 100));
+    root.style.setProperty('--bg-blur', `${settings.backgroundBlur}px`);
+    root.style.setProperty('--bg-scale', `${settings.backgroundScale}%`);
   }, [settings, mounted]);
 
   const toggleTheme = () => {

@@ -8,6 +8,7 @@ import ImageDisplay from '@/components/ImageDisplay';
 import PromptOptimizer from '@/components/PromptOptimizer';
 import ThemeSettingsPanel from '@/components/ThemeSettingsPanel';
 import { saveImage, type StoredImage } from '@/lib/imageStorage';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export type ApiFormat = 'images' | 'chat';
 
@@ -400,13 +401,41 @@ export default function Home() {
     setParams(prev => ({ ...prev, prompt }));
   };
 
+  // 获取主题设置
+  const { settings } = useTheme();
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[var(--color-bg-primary)] via-[var(--color-bg-secondary)] to-[var(--color-bg-primary)]">
-      <Header 
-        onApiClick={() => setShowApiPanel(!showApiPanel)}
-        isApiConfigured={!!apiConfig.endpoint && !!apiConfig.apiKey}
-        onThemeClick={() => setShowThemeSettings(true)}
+    <div className="min-h-screen flex flex-col relative">
+      {/* 背景图片层 */}
+      {settings.backgroundImage && (
+        <div 
+          className="fixed inset-0 bg-cover bg-center transition-all duration-500"
+          style={{ 
+            backgroundImage: `url(${settings.backgroundImage})`,
+            filter: `blur(${settings.backgroundBlur}px)`,
+            transform: `scale(${settings.backgroundScale / 100})`
+          }}
+        />
+      )}
+      
+      {/* 渐变背景层 */}
+      <div 
+        className="fixed inset-0 transition-opacity duration-300"
+        style={{ 
+          background: settings.backgroundImage 
+            ? `linear-gradient(135deg, rgba(var(--color-bg-primary-rgb, 250, 247, 242), ${settings.transparency / 100}) 0%, rgba(var(--color-bg-secondary-rgb, 240, 235, 227), ${settings.transparency / 100}) 100%)`
+            : 'linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%)',
+          backdropFilter: settings.glassEffect ? 'blur(var(--glass-blur, 16px))' : 'none'
+        }}
       />
+      
+      {/* 内容层 */}
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <Header 
+          onApiClick={() => setShowApiPanel(!showApiPanel)}
+          isApiConfigured={!!apiConfig.endpoint && !!apiConfig.apiKey}
+          onThemeClick={() => setShowThemeSettings(true)}
+        />
 
       <main className="flex-1 flex flex-col lg:flex-row gap-0">
         {/* Left Panel - Controls */}
@@ -484,6 +513,7 @@ export default function Home() {
         isOpen={showThemeSettings}
         onClose={() => setShowThemeSettings(false)}
       />
+      </div>
     </div>
   );
 }
