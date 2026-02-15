@@ -9,6 +9,8 @@ class MealAnalyzeResponse(BaseModel):
     nutrition: dict
     recommendation: dict
     risk_score: float
+    trace_id: str
+    response_version: str
 
 
 class MealHistoryItem(BaseModel):

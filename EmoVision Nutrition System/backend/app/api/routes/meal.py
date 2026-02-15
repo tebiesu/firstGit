@@ -1,5 +1,6 @@
 ﻿from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy import desc, select
@@ -14,7 +15,11 @@ from app.schemas.meal import MealAnalyzeResponse, MealHistoryItem, MealHistoryRe
 from app.services.emotion import analyze_emotion
 from app.services.nutrition import estimate_nutrition
 from app.services.provider_router import ProviderRouterService
-from app.services.recommendation import generate_recommendation
+from app.services.structured_recommendation import (
+    build_recommendation_prompt,
+    fallback_recommendation,
+    parse_llm_recommendation,
+)
 
 router = APIRouter()
 
@@ -37,6 +42,7 @@ async def analyze_meal(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    trace_id = uuid4().hex
     image_paths: list[str] = []
     for image in images[:3]:
         image_paths.append(_save_upload(image))
@@ -53,20 +59,45 @@ async def analyze_meal(
     emotion = analyze_emotion(mood_text=mood_text, stress=stress_level, hunger=hunger_level)
     foods, nutrition = estimate_nutrition(image_count=max(len(image_paths), 1), mood_text=mood_text)
 
+    profile = db.scalar(select(HealthProfile).where(HealthProfile.user_id == current_user.id))
+    profile_dict = profile.__dict__ if profile else None
+
     router_service = ProviderRouterService(db)
-    llm_hint = await router_service.call_with_fallback(
+    llm_result = await router_service.call_with_fallback(
         task="recommend",
-        prompt=(
-            "请根据用户情绪和营养信息给出JSON建议。"
-            f"emotion={emotion}; nutrition={nutrition}; mood_text={mood_text}"
+        prompt=build_recommendation_prompt(
+            emotion=emotion,
+            nutrition=nutrition,
+            mood_text=mood_text,
+            profile=profile_dict,
         ),
     )
 
-    profile = db.scalar(select(HealthProfile).where(HealthProfile.user_id == current_user.id))
-    recommendation_content = generate_recommendation(emotion=emotion, nutrition=nutrition, profile=profile.__dict__ if profile else None)
+    recommendation_content: dict
+    generation_mode = "fallback_rule"
+    parse_error: str | None = None
 
-    if llm_hint.get("ok") and llm_hint.get("content"):
-        recommendation_content["llm_raw"] = llm_hint["content"]
+    if llm_result.get("ok") and llm_result.get("content"):
+        try:
+            recommendation_content = parse_llm_recommendation(str(llm_result["content"]))
+            generation_mode = "llm_structured"
+        except ValueError as exc:
+            parse_error = str(exc)
+            recommendation_content = fallback_recommendation(
+                emotion=emotion,
+                nutrition=nutrition,
+                profile=profile_dict,
+                reason=parse_error,
+            )
+    else:
+        recommendation_content = fallback_recommendation(
+            emotion=emotion,
+            nutrition=nutrition,
+            profile=profile_dict,
+            reason=llm_result.get("error") or "provider_unavailable",
+        )
+
+    recommendation_content["generation_mode"] = generation_mode
 
     db.add(
         MealAnalysis(
@@ -74,7 +105,11 @@ async def analyze_meal(
             foods=foods,
             nutrition=nutrition,
             risk_score=emotion["risk_score"],
-            raw_model_output={"provider": llm_hint},
+            raw_model_output={
+                "trace_id": trace_id,
+                "provider": llm_result,
+                "parse_error": parse_error,
+            },
         )
     )
     db.add(
@@ -94,6 +129,8 @@ async def analyze_meal(
         nutrition=nutrition,
         recommendation=recommendation_content,
         risk_score=emotion["risk_score"],
+        trace_id=trace_id,
+        response_version="1.1",
     )
 
 
