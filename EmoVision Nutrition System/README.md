@@ -32,10 +32,12 @@ docker compose up --build
 - Meal analyze/history: `/api/v1/meal/analyze`, `/api/v1/meal/history`
 - Reports: `/api/v1/report/daily`, `/api/v1/report/weekly`
 - Admin provider mgmt: `/api/v1/admin/providers`, `/api/v1/admin/providers/{id}/test`, `/api/v1/admin/audit-logs`
+- Admin provider templates: `/api/v1/admin/providers/templates`
 - Provider adapters: openai-compatible/new_api, gemini, claude
 
 ## Notes
 - `provider_configs` API key is encrypted before storage.
+- Provider config performs strict validation for `provider_type`, `base_url`, and `model_map` task keys.
 - DB schema supports Alembic migrations (`backend/alembic`).
 - For graduation project demo, meal nutrition and emotion scoring include deterministic fallback logic.
 - If no provider is configured, meal analysis still returns baseline recommendations.

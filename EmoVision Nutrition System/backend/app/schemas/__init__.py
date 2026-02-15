@@ -6,6 +6,7 @@ from app.schemas.provider import (
     ProviderConfigOut,
     ProviderConfigUpdate,
     ProviderHealthCheckResult,
+    ProviderTemplateOut,
 )
 from app.schemas.report import DailyReportResponse, WeeklyReportItem, WeeklyReportResponse
 from app.schemas.user import HealthProfileOut, HealthProfileUpdate, UserProfileOut
@@ -22,6 +23,7 @@ __all__ = [
     "ProviderConfigOut",
     "ProviderConfigUpdate",
     "ProviderHealthCheckResult",
+    "ProviderTemplateOut",
     "AuditLogOut",
     "DailyReportResponse",
     "WeeklyReportItem",

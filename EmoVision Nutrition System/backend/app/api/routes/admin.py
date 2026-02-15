@@ -13,17 +13,53 @@ from app.schemas.provider import (
     ProviderConfigOut,
     ProviderConfigUpdate,
     ProviderHealthCheckResult,
+    ProviderTemplateOut,
 )
 from app.services.audit import write_audit_log
 from app.services.providers import build_provider
 
 router = APIRouter()
 
+PROVIDER_TEMPLATES: dict[str, dict[str, str]] = {
+    "openai_compatible": {
+        "default": "gpt-4o-mini",
+        "emotion": "gpt-4o-mini",
+        "vision": "gpt-4o-mini",
+        "recommend": "gpt-4o",
+    },
+    "new_api": {
+        "default": "gpt-4o-mini",
+        "emotion": "gpt-4o-mini",
+        "vision": "gpt-4o-mini",
+        "recommend": "gpt-4o",
+    },
+    "gemini": {
+        "default": "gemini-1.5-flash",
+        "emotion": "gemini-1.5-flash",
+        "vision": "gemini-1.5-flash",
+        "recommend": "gemini-1.5-pro",
+    },
+    "claude": {
+        "default": "claude-3-5-sonnet-latest",
+        "emotion": "claude-3-5-haiku-latest",
+        "vision": "claude-3-5-sonnet-latest",
+        "recommend": "claude-3-5-sonnet-latest",
+    },
+}
+
 
 @router.get("/providers", response_model=list[ProviderConfigOut])
 def list_providers(_: User = Depends(get_current_admin), db: Session = Depends(get_db)):
     rows = db.scalars(select(ProviderConfig).order_by(ProviderConfig.priority.asc())).all()
     return list(rows)
+
+
+@router.get("/providers/templates", response_model=list[ProviderTemplateOut])
+def provider_templates(_: User = Depends(get_current_admin)):
+    return [
+        ProviderTemplateOut(provider_type=provider_type, recommended_model_map=model_map)
+        for provider_type, model_map in PROVIDER_TEMPLATES.items()
+    ]
 
 
 @router.post("/providers", response_model=ProviderConfigOut)
@@ -87,12 +123,15 @@ async def test_provider(provider_id: int, _: User = Depends(get_current_admin), 
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Provider not found")
 
-    provider = build_provider(
-        provider_type=row.provider_type,
-        base_url=row.base_url,
-        api_key=decrypt_secret(row.encrypted_api_key),
-        model_map=row.model_map,
-    )
+    try:
+        provider = build_provider(
+            provider_type=row.provider_type,
+            base_url=row.base_url,
+            api_key=decrypt_secret(row.encrypted_api_key),
+            model_map=row.model_map,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     result = await provider.health_check()
     return ProviderHealthCheckResult(provider_id=provider_id, ok=result.ok, detail=result.error or result.content)
 
