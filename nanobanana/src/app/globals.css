@@ -1,0 +1,591 @@
+@import "tailwindcss";
+
+/* ========================================
+   NANOBANANA - 柔化粗犷主义 × Claude 美学
+   Banana Peel 🍌
+   ======================================== */
+
+:root {
+  /* Claude-inspired warm neutrals */
+  --color-bg-primary: #faf7f2;
+  --color-bg-secondary: #f0ebe3;
+  --color-bg-tertiary: #e5ded3;
+  
+  /* Warm accent colors */
+  --color-accent-primary: #d4a574;
+  --color-accent-secondary: #8b6914;
+  --color-accent-highlight: #ff6b35;
+  
+  /* Banana theme */
+  --color-banana-light: #fff3b0;
+  --color-banana-medium: #ffd54f;
+  --color-banana-dark: #ffb300;
+  --color-banana-peel: #e6c42c;
+  
+  /* Claude coral warmth */
+  --color-coral: #d4785c;
+  --color-coral-light: #e8a090;
+  
+  /* Text colors */
+  --color-text-primary: #2a2420;
+  --color-text-secondary: #5a4d40;
+  --color-text-muted: #8a7d70;
+  --color-text-inverse: #faf7f2;
+  
+  /* Soft borders */
+  --border-light: 1px solid rgba(42, 36, 32, 0.15);
+  --border-medium: 2px solid rgba(42, 36, 32, 0.2);
+  --border-accent: 2px solid var(--color-accent-highlight);
+  
+  /* Soft shadows with blur */
+  --shadow-soft: 0 4px 20px rgba(42, 36, 32, 0.08);
+  --shadow-soft-md: 0 8px 30px rgba(42, 36, 32, 0.12);
+  --shadow-soft-lg: 0 16px 40px rgba(42, 36, 32, 0.15);
+  --shadow-glow: 0 0 40px rgba(255, 107, 53, 0.2);
+  --shadow-banana: 0 4px 20px rgba(255, 213, 79, 0.3);
+  
+  /* Typography - using Next.js font variables */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+  
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  
+  /* Smooth transitions */
+  --transition-fast: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-spring: 800ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* Border radius - softer */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+}
+
+/* ========================================
+   BASE STYLES
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle grain texture */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  z-index: 9999;
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  text-transform: uppercase;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  text-transform: uppercase;
+}
+
+h3 {
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+}
+
+p {
+  max-width: 65ch;
+}
+
+code, pre {
+  font-family: var(--font-mono);
+}
+
+/* ========================================
+   SOFT COMPONENTS
+   ======================================== */
+
+/* Soft Button */
+.btn-brutal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background-color: var(--color-banana-light);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft), var(--shadow-banana);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-brutal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-brutal:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft-md), var(--shadow-banana);
+}
+
+.btn-brutal:hover::before {
+  opacity: 1;
+}
+
+.btn-brutal:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: var(--shadow-soft);
+  transition: all var(--transition-fast);
+}
+
+.btn-brutal--primary {
+  background: linear-gradient(135deg, var(--color-accent-highlight) 0%, #ff8a5c 100%);
+  color: white;
+  box-shadow: var(--shadow-soft), 0 4px 20px rgba(255, 107, 53, 0.3);
+}
+
+.btn-brutal--primary:hover {
+  box-shadow: var(--shadow-soft-md), 0 6px 30px rgba(255, 107, 53, 0.4);
+}
+
+.btn-brutal--secondary {
+  background-color: var(--color-bg-secondary);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-brutal--secondary:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.btn-brutal--outline {
+  background-color: transparent;
+  border: 2px solid rgba(42, 36, 32, 0.2);
+  box-shadow: none;
+}
+
+.btn-brutal--outline:hover {
+  border-color: var(--color-accent-highlight);
+  background-color: rgba(255, 107, 53, 0.05);
+}
+
+/* Soft Card */
+.card-brutal {
+  background: linear-gradient(145deg, white 0%, var(--color-bg-primary) 100%);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft-md);
+  padding: var(--space-xl);
+  position: relative;
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.card-brutal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+}
+
+.card-brutal:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-soft-lg);
+}
+
+/* Soft Input */
+.input-brutal {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  background-color: white;
+  color: var(--color-text-primary);
+  border: 2px solid rgba(42, 36, 32, 0.1);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: all var(--transition-base);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.input-brutal:focus {
+  border-color: var(--color-accent-highlight);
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1), inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.input-brutal::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Soft Select */
+.select-brutal {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  padding-right: 3rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  background-color: white;
+  color: var(--color-text-primary);
+  border: 2px solid rgba(42, 36, 32, 0.1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235a4d40' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  transition: all var(--transition-base);
+}
+
+.select-brutal:focus {
+  outline: none;
+  border-color: var(--color-accent-highlight);
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+}
+
+/* Soft Label */
+.label-brutal {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+/* ========================================
+   SILKY ANIMATIONS
+   ======================================== */
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-8px) rotate(2deg); }
+  75% { transform: translateY(-4px) rotate(-1deg); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+/* Animation utilities */
+.animate-slide-left {
+  animation: slideInFromLeft var(--transition-spring) forwards;
+}
+
+.animate-slide-right {
+  animation: slideInFromRight var(--transition-spring) forwards;
+}
+
+.animate-slide-up {
+  animation: slideInFromBottom var(--transition-spring) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-slow) forwards;
+}
+
+.animate-fade-scale {
+  animation: fadeScale var(--transition-spring) forwards;
+}
+
+.animate-bounce-in {
+  animation: bounceIn var(--transition-spring) forwards;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1.5s linear infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Staggered animations */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.soft-shadow { box-shadow: var(--shadow-soft); }
+.soft-shadow-md { box-shadow: var(--shadow-soft-md); }
+.soft-shadow-lg { box-shadow: var(--shadow-soft-lg); }
+.glow-shadow { box-shadow: var(--shadow-glow); }
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--color-banana-medium), var(--color-banana-dark));
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--color-accent-highlight), #ff8a5c);
+}
+
+/* ========================================
+   SELECTION
+   ======================================== */
+
+::selection {
+  background-color: var(--color-banana-light);
+  color: var(--color-text-primary);
+}
+
+/* ========================================
+   FOCUS STYLES
+   ======================================== */
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-highlight);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+  :root {
+    --radius-md: 10px;
+    --radius-lg: 14px;
+  }
+  
+  .btn-brutal {
+    padding: var(--space-sm) var(--space-lg);
+    font-size: 0.8rem;
+  }
+  
+  .card-brutal {
+    padding: var(--space-lg);
+  }
+}
+
+/* ========================================
+   SPECIAL EFFECTS
+   ======================================== */
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-accent-highlight), var(--color-coral));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Border gradient animation */
+.border-gradient {
+  position: relative;
+}
+
+.border-gradient::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--color-banana-medium), var(--color-accent-highlight), var(--color-coral));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.border-gradient:hover::after {
+  opacity: 1;
+}
