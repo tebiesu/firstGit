@@ -24,7 +24,8 @@ def create_application() -> FastAPI:
     @app.on_event("startup")
     def on_startup() -> None:
         Path(settings.uploads_dir).mkdir(parents=True, exist_ok=True)
-        Base.metadata.create_all(bind=engine)
+        if settings.auto_create_tables:
+            Base.metadata.create_all(bind=engine)
 
     @app.get("/health")
     def health() -> dict:

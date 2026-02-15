@@ -26,6 +26,7 @@ class ProviderCallLog(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     provider_id: Mapped[int | None] = mapped_column(ForeignKey("provider_configs.id"), nullable=True, index=True)
     task_type: Mapped[str] = mapped_column(String(64), index=True)
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
     latency_ms: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(32), default="ok")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

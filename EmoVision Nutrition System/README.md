@@ -8,6 +8,7 @@ python -m venv .venv
 . .venv/Scripts/activate
 pip install -r requirements.txt
 copy .env.example .env
+alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -35,5 +36,6 @@ docker compose up --build
 
 ## Notes
 - `provider_configs` API key is encrypted before storage.
+- DB schema supports Alembic migrations (`backend/alembic`).
 - For graduation project demo, meal nutrition and emotion scoring include deterministic fallback logic.
 - If no provider is configured, meal analysis still returns baseline recommendations.

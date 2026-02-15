@@ -13,6 +13,9 @@ class Settings(BaseSettings):
 
     uploads_dir: str = "uploads"
     cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    auto_create_tables: bool = True
+    provider_max_retries: int = 2
+    provider_retry_backoff_seconds: float = 0.4
 
     encryption_key: str = ""
 
