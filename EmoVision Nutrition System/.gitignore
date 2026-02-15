@@ -11,6 +11,7 @@ dist/
 # Runtime
 uploads/
 .env
+backend/emovision.db
 
 # OS
 .DS_Store
