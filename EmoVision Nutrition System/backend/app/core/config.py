@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     auto_create_tables: bool = True
     provider_max_retries: int = 2
     provider_retry_backoff_seconds: float = 0.4
+    provider_circuit_failure_threshold: int = 3
+    provider_circuit_window_seconds: int = 300
 
     encryption_key: str = ""
 

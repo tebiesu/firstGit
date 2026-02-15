@@ -1,8 +1,9 @@
 ﻿from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta
 
-from sqlalchemy import asc, select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -23,18 +24,56 @@ class ProviderRouterService:
         )
         return list(self.db.scalars(stmt).all())
 
-    def _log_call(self, provider_id: int, task: str, attempt: int, latency_ms: int, ok: bool, error_message: str | None) -> None:
+    def _log_call(
+        self,
+        provider_id: int,
+        task: str,
+        attempt: int,
+        latency_ms: int,
+        ok: bool,
+        error_message: str | None,
+        status: str | None = None,
+    ) -> None:
         self.db.add(
             ProviderCallLog(
                 provider_id=provider_id,
                 task_type=task,
                 attempt=attempt,
                 latency_ms=latency_ms,
-                status="ok" if ok else "failed",
+                status=status or ("ok" if ok else "failed"),
                 error_message=error_message,
             )
         )
         self.db.commit()
+
+    def _is_provider_circuit_open(self, provider_id: int, task: str) -> bool:
+        threshold = max(settings.provider_circuit_failure_threshold, 1)
+        window_seconds = max(settings.provider_circuit_window_seconds, 1)
+        window_start = datetime.utcnow() - timedelta(seconds=window_seconds)
+
+        stmt = (
+            select(ProviderCallLog)
+            .where(
+                ProviderCallLog.provider_id == provider_id,
+                ProviderCallLog.task_type == task,
+                ProviderCallLog.created_at >= window_start,
+            )
+            .order_by(desc(ProviderCallLog.created_at))
+            .limit(threshold + 5)
+        )
+        logs = list(self.db.scalars(stmt).all())
+        if not logs:
+            return False
+
+        consecutive_failures = 0
+        for log in logs:
+            if log.status == "ok":
+                break
+            if log.status == "failed":
+                consecutive_failures += 1
+            if consecutive_failures >= threshold:
+                return True
+        return False
 
     async def call_with_fallback(self, task: str, prompt: str, image_urls: list[str] | None = None) -> dict:
         providers = self.list_enabled()
@@ -42,6 +81,18 @@ class ProviderRouterService:
             return {"ok": False, "content": "", "error": "no enabled providers"}
 
         for cfg in providers:
+            if self._is_provider_circuit_open(provider_id=cfg.id, task=task):
+                self._log_call(
+                    provider_id=cfg.id,
+                    task=task,
+                    attempt=0,
+                    latency_ms=0,
+                    ok=False,
+                    error_message="circuit_open",
+                    status="skipped_circuit_open",
+                )
+                continue
+
             for attempt in range(1, settings.provider_max_retries + 1):
                 try:
                     provider = build_provider(

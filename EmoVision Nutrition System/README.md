@@ -34,6 +34,7 @@ docker compose up --build
 - Admin provider mgmt: `/api/v1/admin/providers`, `/api/v1/admin/providers/{id}/test`, `/api/v1/admin/audit-logs`
 - Admin provider templates: `/api/v1/admin/providers/templates`
 - Provider adapters: openai-compatible/new_api, gemini, claude
+- Provider stability: retry + fallback + circuit breaker (short-term failure skip)
 
 ## Notes
 - `provider_configs` API key is encrypted before storage.

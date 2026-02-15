@@ -1,4 +1,5 @@
 ﻿import asyncio
+from datetime import datetime
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -114,3 +115,72 @@ def test_provider_fallback_to_next_provider(monkeypatch):
     result = asyncio.run(ProviderRouterService(db).call_with_fallback(task="recommend", prompt="x"))
     assert result["ok"] is True
     assert result["provider_id"] == 2
+
+
+def test_provider_circuit_open_skips_unhealthy_provider(monkeypatch):
+    db = _build_db()
+    db.add_all(
+        [
+            ProviderConfig(
+                provider_type="openai_compatible",
+                name="p1",
+                base_url="http://x",
+                encrypted_api_key=encrypt_secret("k"),
+                model_map={"default": "m"},
+                priority=1,
+                enabled=True,
+            ),
+            ProviderConfig(
+                provider_type="gemini",
+                name="p2",
+                base_url="http://y",
+                encrypted_api_key=encrypt_secret("k2"),
+                model_map={"default": "m2"},
+                priority=2,
+                enabled=True,
+            ),
+        ]
+    )
+    db.commit()
+
+    db.add_all(
+        [
+            ProviderCallLog(
+                provider_id=1,
+                task_type="recommend",
+                attempt=1,
+                latency_ms=10,
+                status="failed",
+                error_message="e1",
+                created_at=datetime.utcnow(),
+            ),
+            ProviderCallLog(
+                provider_id=1,
+                task_type="recommend",
+                attempt=1,
+                latency_ms=11,
+                status="failed",
+                error_message="e2",
+                created_at=datetime.utcnow(),
+            ),
+        ]
+    )
+    db.commit()
+
+    providers = {"openai_compatible": _AlwaysFailProvider(), "gemini": _AlwaysSuccessProvider()}
+
+    def _factory(provider_type: str, **kwargs):
+        return providers[provider_type]
+
+    monkeypatch.setattr(router_mod, "build_provider", _factory)
+    monkeypatch.setattr(router_mod.settings, "provider_max_retries", 1)
+    monkeypatch.setattr(router_mod.settings, "provider_retry_backoff_seconds", 0)
+    monkeypatch.setattr(router_mod.settings, "provider_circuit_failure_threshold", 2)
+    monkeypatch.setattr(router_mod.settings, "provider_circuit_window_seconds", 300)
+
+    result = asyncio.run(ProviderRouterService(db).call_with_fallback(task="recommend", prompt="x"))
+    assert result["ok"] is True
+    assert result["provider_id"] == 2
+
+    statuses = [row.status for row in db.scalars(select(ProviderCallLog).order_by(ProviderCallLog.id)).all()]
+    assert "skipped_circuit_open" in statuses
