@@ -6,6 +6,7 @@ import ApiConfigPanel, { type AiAssistantConfig } from '@/components/ApiConfigPa
 import GeneratorPanel from '@/components/GeneratorPanel';
 import ImageDisplay from '@/components/ImageDisplay';
 import PromptOptimizer from '@/components/PromptOptimizer';
+import ThemeSettingsPanel from '@/components/ThemeSettingsPanel';
 import { saveImage, type StoredImage } from '@/lib/imageStorage';
 
 export type ApiFormat = 'images' | 'chat';
@@ -67,6 +68,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [showApiPanel, setShowApiPanel] = useState(false);
   const [showOptimizer, setShowOptimizer] = useState(false);
+  const [showThemeSettings, setShowThemeSettings] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [aiAvailableModels, setAiAvailableModels] = useState<string[]>([]);
   
@@ -403,6 +405,7 @@ export default function Home() {
       <Header 
         onApiClick={() => setShowApiPanel(!showApiPanel)}
         isApiConfigured={!!apiConfig.endpoint && !!apiConfig.apiKey}
+        onThemeClick={() => setShowThemeSettings(true)}
       />
 
       <main className="flex-1 flex flex-col lg:flex-row gap-0">
@@ -474,6 +477,12 @@ export default function Home() {
         apiEndpoint={aiConfig.endpoint || apiConfig.endpoint}
         apiKey={aiConfig.apiKey || apiConfig.apiKey}
         apiModel={aiConfig.model || 'gpt-3.5-turbo'}
+      />
+
+      {/* Theme Settings Panel */}
+      <ThemeSettingsPanel
+        isOpen={showThemeSettings}
+        onClose={() => setShowThemeSettings(false)}
       />
     </div>
   );

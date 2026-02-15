@@ -4,21 +4,36 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 
 type Theme = 'light' | 'dark';
 
+interface ThemeSettings {
+  glassEffect: boolean;    // 毛玻璃效果
+  transparency: number;    // 透明度 0-100
+}
+
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  settings: ThemeSettings;
+  updateSettings: (settings: Partial<ThemeSettings>) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const DEFAULT_SETTINGS: ThemeSettings = {
+  glassEffect: true,
+  transparency: 80,
+};
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light');
+  const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_SETTINGS);
   const [mounted, setMounted] = useState(false);
 
-  // 初始化主题
+  // 初始化主题和设置
   useEffect(() => {
     const savedTheme = localStorage.getItem('nanobanana-theme') as Theme;
+    const savedSettings = localStorage.getItem('nanobanana-theme-settings');
+    
     if (savedTheme) {
       setThemeState(savedTheme);
       if (savedTheme === 'dark') {
@@ -28,6 +43,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setThemeState('dark');
       document.documentElement.classList.add('dark');
     }
+    
+    if (savedSettings) {
+      try {
+        setSettings(JSON.parse(savedSettings));
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    
     setMounted(true);
   }, []);
 
@@ -44,6 +68,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('nanobanana-theme', theme);
   }, [theme, mounted]);
 
+  // 设置变化时保存
+  useEffect(() => {
+    if (!mounted) return;
+    localStorage.setItem('nanobanana-theme-settings', JSON.stringify(settings));
+    
+    // 应用 CSS 变量
+    const root = document.documentElement;
+    root.style.setProperty('--glass-blur', settings.glassEffect ? '16px' : '0px');
+    root.style.setProperty('--bg-opacity', String(settings.transparency / 100));
+  }, [settings, mounted]);
+
   const toggleTheme = () => {
     setThemeState(prev => prev === 'light' ? 'dark' : 'light');
   };
@@ -52,9 +87,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(newTheme);
   };
 
-  // 始终渲染 children，避免闪烁
+  const updateSettings = (newSettings: Partial<ThemeSettings>) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, settings, updateSettings }}>
       {children}
     </ThemeContext.Provider>
   );

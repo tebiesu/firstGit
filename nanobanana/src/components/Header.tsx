@@ -7,6 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 interface HeaderProps {
   onApiClick: () => void;
   isApiConfigured: boolean;
+  onThemeClick: () => void;
 }
 
 const SLOGANS = [
@@ -18,52 +19,66 @@ const SLOGANS = [
   '灵感即刻绽放',
 ];
 
-export default function Header({ onApiClick, isApiConfigured }: HeaderProps) {
+type TypingPhase = 'typing' | 'paused' | 'deleting' | 'switching';
+
+export default function Header({ onApiClick, isApiConfigured, onThemeClick }: HeaderProps) {
   const [currentSlogan, setCurrentSlogan] = useState(0);
   const [displayText, setDisplayText] = useState('');
-  const [isTyping, setIsTyping] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
+  const [phase, setPhase] = useState<TypingPhase>('typing');
   const { theme, toggleTheme } = useTheme();
-  const typingRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 打字机效果
   useEffect(() => {
     const slogan = SLOGANS[currentSlogan];
     
-    if (isTyping && !isPaused) {
-      if (displayText.length < slogan.length) {
-        typingRef.current = setTimeout(() => {
-          setDisplayText(slogan.slice(0, displayText.length + 1));
-        }, 80);
-      } else {
-        setIsPaused(true);
-        typingRef.current = setTimeout(() => {
-          setIsPaused(false);
-          setIsTyping(false);
-        }, 2000);
+    const runAnimation = () => {
+      switch (phase) {
+        case 'typing':
+          if (displayText.length < slogan.length) {
+            timeoutRef.current = setTimeout(() => {
+              setDisplayText(slogan.slice(0, displayText.length + 1));
+            }, 80);
+          } else {
+            // 打完了，暂停
+            timeoutRef.current = setTimeout(() => {
+              setPhase('deleting');
+            }, 2000);
+          }
+          break;
+          
+        case 'deleting':
+          if (displayText.length > 0) {
+            timeoutRef.current = setTimeout(() => {
+              setDisplayText(slogan.slice(0, displayText.length - 1));
+            }, 40);
+          } else {
+            // 删完了，切换到下一个
+            setPhase('switching');
+          }
+          break;
+          
+        case 'switching':
+          setCurrentSlogan((prev) => (prev + 1) % SLOGANS.length);
+          setPhase('typing');
+          break;
       }
-    } else if (!isTyping && !isPaused) {
-      if (displayText.length > 0) {
-        typingRef.current = setTimeout(() => {
-          setDisplayText(slogan.slice(0, displayText.length - 1));
-        }, 40);
-      } else {
-        setCurrentSlogan((prev) => (prev + 1) % SLOGANS.length);
-        setIsTyping(true);
-      }
-    }
+    };
+
+    runAnimation();
 
     return () => {
-      if (typingRef.current) clearTimeout(typingRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [displayText, isTyping, isPaused, currentSlogan]);
+  }, [displayText, phase, currentSlogan]);
 
   return (
     <header 
-      className="sticky top-0 z-50 backdrop-blur-xl border-b transition-all duration-300"
+      className="sticky top-0 z-50 border-b transition-all duration-300"
       style={{ 
         backgroundColor: 'var(--color-bg-primary)',
-        borderColor: 'rgba(var(--border-color-rgb, 42, 36, 32), 0.08)'
+        backdropFilter: 'var(--glass-blur, blur(16px))',
+        borderColor: 'rgba(42, 36, 32, 0.08)'
       }}
     >
       <div className="max-w-[1800px] mx-auto px-4 lg:px-6 py-4 lg:py-5 flex items-center justify-between">
@@ -94,7 +109,7 @@ export default function Header({ onApiClick, isApiConfigured }: HeaderProps) {
               >
                 {displayText}
                 <span 
-                  className={`inline-block w-0.5 h-4 ml-0.5 ${isTyping && !isPaused ? 'animate-pulse' : ''}`}
+                  className={`inline-block w-0.5 h-4 ml-0.5 ${phase === 'typing' ? 'animate-pulse' : ''}`}
                   style={{ backgroundColor: 'var(--color-accent-highlight)' }}
                 ></span>
               </span>
@@ -104,7 +119,7 @@ export default function Header({ onApiClick, isApiConfigured }: HeaderProps) {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 lg:gap-3">
-          {/* Theme Toggle */}
+          {/* Theme Toggle - 点击切换日/夜间模式 */}
           <button
             onClick={toggleTheme}
             className="p-2.5 lg:p-3 rounded-xl transition-all duration-300 group"
@@ -114,10 +129,27 @@ export default function Header({ onApiClick, isApiConfigured }: HeaderProps) {
             title={theme === 'light' ? '切换到夜间模式' : '切换到日间模式'}
           >
             <div 
-              className="w-5 h-5 transition-colors duration-300 group-hover:opacity-80"
-              style={{ color: 'var(--color-text-secondary)' }}
+              className="w-5 h-5 transition-all duration-300"
+              style={{ color: 'var(--color-accent-highlight)' }}
             >
               {theme === 'light' ? Icons.moon : Icons.sun}
+            </div>
+          </button>
+
+          {/* Theme Settings - 打开主题设置面板 */}
+          <button
+            onClick={onThemeClick}
+            className="p-2.5 lg:p-3 rounded-xl transition-all duration-300 group"
+            style={{ 
+              backgroundColor: 'var(--color-bg-secondary)',
+            }}
+            title="主题设置"
+          >
+            <div 
+              className="w-5 h-5 transition-all duration-300"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              {Icons.cog}
             </div>
           </button>
 
