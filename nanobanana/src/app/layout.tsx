@@ -25,11 +25,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "香蕉皮 🍌 | AI 图像生成",
-  description: "粗犷主义 AI 图像生成平台，Claude 美学风格。香蕉皮，构建你的世界。",
+  title: "香蕉皮 | AI 图像生成",
+  description: "面向创作者的高质感 AI 图像生成工作台。",
   icons: {
-    icon: '/banana.svg',
-    apple: '/banana.svg',
+    icon: "/banana.svg",
+    apple: "/banana.svg",
   },
 };
 
@@ -39,15 +39,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html 
-      lang="zh-CN" 
+    <html
+      lang="zh-CN"
       className={`${spaceMono.variable} ${ibmPlexSans.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body className="antialiased theme-transition">
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

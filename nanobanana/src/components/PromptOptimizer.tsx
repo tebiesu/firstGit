@@ -1,13 +1,10 @@
-'use client';
+﻿'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  optimizedPrompt?: string;
-  chineseTranslation?: string;
-  description?: string;
   timestamp: number;
 }
 
@@ -20,282 +17,72 @@ interface PromptOptimizerProps {
   apiModel: string;
 }
 
-const SYSTEM_PROMPT = `你是一个专业的AI图像生成提示词优化专家。当用户提供提示词时，你需要：
+const UI = {
+  title: '\u63d0\u793a\u8bcd\u4f18\u5316\u52a9\u624b',
+  subtitle: '\u4f18\u5316\u7ed3\u6784\uff0c\u589e\u5f3a\u753b\u9762\uff0c\u8f93\u51fa\u53ef\u76f4\u63a5\u751f\u6210\u7684\u82f1\u6587\u63d0\u793a\u8bcd',
+  clear: '\u6e05\u7a7a\u5bf9\u8bdd',
+  send: '\u53d1\u9001',
+  loading: '\u6b63\u5728\u4f18\u5316\u4e2d...',
+  apply: '\u5e94\u7528\u6b64\u63d0\u793a\u8bcd',
+  optimized: '\u4f18\u5316\u540e\u7684\u82f1\u6587\u63d0\u793a\u8bcd',
+  translation: '\u4e2d\u6587\u91ca\u4e49',
+  description: '\u753b\u9762\u63cf\u8ff0',
+  ready: 'API \u5df2\u5c31\u7eea\u3002',
+  notReady: '\u8bf7\u5148\u914d\u7f6e API\u3002',
+  inputHint: '\u63cf\u8ff0\u4f60\u60f3\u751f\u6210\u7684\u753b\u9762\uff0c\u4f8b\u5982\uff1a\u96e8\u540e\u8857\u9053\uff0c\u7535\u5f71\u611f\uff0c\u9006\u5149\u4eba\u50cf',
+  helper: 'Enter \u53d1\u9001\uff0cShift + Enter \u6362\u884c\u3002',
+  welcome: '\u4f60\u597d\uff0c\u6211\u662f\u63d0\u793a\u8bcd\u4f18\u5316\u52a9\u624b\u3002\n\n\u544a\u8bc9\u6211\u4f60\u60f3\u751f\u6210\u4ec0\u4e48\uff0c\u6211\u4f1a\u8fd4\u56de\uff1a\n1. \u53ef\u76f4\u63a5\u4f7f\u7528\u7684\u82f1\u6587\u63d0\u793a\u8bcd\n2. \u4e2d\u6587\u91ca\u4e49\n3. \u753b\u9762\u6c1b\u56f4\u63cf\u8ff0',
+  cleared: '\u5bf9\u8bdd\u5df2\u6e05\u7a7a\u3002\u7ee7\u7eed\u8f93\u5165\u4f60\u7684\u521b\u4f5c\u610f\u56fe\u5427\u3002',
+  requestFailed: '\u8bf7\u6c42\u5931\u8d25\uff1a',
+};
 
-1. 优化提示词：改进提示词结构，添加艺术风格、光照、氛围、构图等细节，翻译为英文（因为大多数图像生成模型对英文支持更好）
-2. 提供中文翻译：将优化后的提示词翻译回中文，方便用户理解
-3. 自然语言描述：用1-2句话描述优化后的提示词想要创作的画面意境和风格
-
-请严格按照以下JSON格式输出，不要添加任何其他文字：
+const SYSTEM_PROMPT = `You are a professional image prompt optimizer. Return strict JSON only:
 {
-  "optimizedPrompt": "优化后的英文提示词",
-  "chineseTranslation": "优化后提示词的中文翻译",
-  "description": "画面描述，如：一幅充满梦幻色彩的水墨画，意境悠远..."
-}
+  "optimizedPrompt": "optimized English prompt",
+  "chineseTranslation": "Chinese meaning",
+  "description": "1-2 sentence visual description"
+}`;
 
-注意：
-- 优化后的提示词要简洁有力，避免过度堆砌
-- 英文提示词用于实际生成，中文翻译用于展示
-- 描述要简洁有画面感`;
-
-// 打字机效果 Hook
-function useTypewriter(text: string, speed: number = 25, startTyping: boolean = true) {
-  const [displayText, setDisplayText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-
-  useEffect(() => {
-    if (!startTyping || !text) {
-      setDisplayText(text);
-      return;
-    }
-
-    setIsTyping(true);
-    setDisplayText('');
-    let index = 0;
-
-    const timer = setInterval(() => {
-      if (index < text.length) {
-        setDisplayText(text.slice(0, index + 1));
-        index++;
-      } else {
-        setIsTyping(false);
-        clearInterval(timer);
-      }
-    }, speed);
-
-    return () => clearInterval(timer);
-  }, [text, speed, startTyping]);
-
-  return { displayText, isTyping };
-}
-
-// SVG 图标组件
 const Icons = {
-  robot: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6">
-      <rect x="3" y="8" width="18" height="12" rx="2" />
-      <circle cx="9" cy="14" r="1.5" fill="currentColor" />
-      <circle cx="15" cy="14" r="1.5" fill="currentColor" />
-      <path d="M12 2v4M8 4h8" strokeLinecap="round" />
-    </svg>
-  ),
-  user: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-6 h-6">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" strokeLinecap="round" />
-    </svg>
-  ),
-  sparkle: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-      <path d="M12 2l1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5L12 2z" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  translate: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2v3M22 22l-5-10-5 10M14 18h6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  image: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
-      <path d="M21 15l-5-5L5 21" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
   close: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
       <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
     </svg>
   ),
   send: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
       <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 };
 
-// 单个消息气泡组件
-function MessageBubble({ message, onApply, index }: { 
-  message: Message; 
-  onApply: (text: string) => void;
-  index: number;
-}) {
-  const [showActions, setShowActions] = useState(false);
-  const isUser = message.role === 'user';
-  
-  // 打字机效果
-  const { displayText, isTyping } = useTypewriter(
-    message.content, 
-    12, 
-    !isUser && index > 0
-  );
-
-  useEffect(() => {
-    if (!isTyping && !isUser) {
-      const timer = setTimeout(() => setShowActions(true), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isTyping, isUser]);
-
-  // 解析 JSON 格式的优化结果
-  const parseOptimizedContent = (content: string) => {
-    try {
-      const parsed = JSON.parse(content);
-      return {
-        optimizedPrompt: parsed.optimizedPrompt || content,
-        chineseTranslation: parsed.chineseTranslation || '',
-        description: parsed.description || '',
-      };
-    } catch {
-      return {
-        optimizedPrompt: content,
-        chineseTranslation: '',
-        description: '',
-      };
-    }
-  };
-
-  const optimized = !isUser && index > 0 ? parseOptimizedContent(displayText) : null;
-
-  return (
-    <div
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-8`}
-      style={{ 
-        animation: `messageSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards`,
-        animationDelay: `${index * 0.08}s`,
-        opacity: 0,
-      }}
-    >
-      {/* Avatar */}
-      {!isUser && (
-        <div className="flex-shrink-0 mr-5">
-          <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-banana-medium)] to-[var(--color-banana-dark)] rounded-2xl flex items-center justify-center shadow-lg shadow-[var(--color-banana-medium)]/30">
-            <span className="text-white">{Icons.robot}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Bubble Container */}
-      <div className={`max-w-[70%] ${isUser ? 'order-first' : ''}`}>
-        {/* Main Bubble */}
-        <div
-          className={`relative px-6 py-5 font-mono text-[15px] leading-relaxed whitespace-pre-wrap transition-all duration-500 ${
-            isUser
-              ? 'bg-gradient-to-br from-[var(--color-accent-highlight)] to-[#ff8a5c] text-white rounded-3xl rounded-tr-lg shadow-lg shadow-[var(--color-accent-highlight)]/25'
-              : 'bg-white text-[var(--color-text-primary)] rounded-3xl rounded-tl-lg shadow-xl border border-[rgba(42,36,32,0.06)]'
-          }`}
-        >
-          {/* User message */}
-          {isUser ? message.content : (
-            <>
-              {/* Optimized prompt */}
-              {optimized && optimized.optimizedPrompt && (
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 text-xs text-[var(--color-accent-highlight)] mb-2 font-semibold uppercase tracking-wider">
-                    {Icons.sparkle}
-                    <span>优化提示词</span>
-                  </div>
-                  <div className="text-[var(--color-text-primary)]">
-                    {optimized.optimizedPrompt}
-                    {isTyping && (
-                      <span className="inline-block w-0.5 h-5 bg-[var(--color-accent-highlight)] ml-1 animate-pulse rounded-sm" />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Chinese Translation */}
-              {optimized && optimized.chineseTranslation && !isTyping && (
-                <div className="mb-4 p-4 bg-[var(--color-bg-secondary)]/50 rounded-xl border-l-3 border-[var(--color-banana-medium)]">
-                  <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] mb-2 font-semibold uppercase tracking-wider">
-                    {Icons.translate}
-                    <span>中文释义</span>
-                  </div>
-                  <div className="text-[var(--color-text-secondary)] text-sm leading-relaxed">
-                    {optimized.chineseTranslation}
-                  </div>
-                </div>
-              )}
-
-              {/* Description */}
-              {optimized && optimized.description && !isTyping && (
-                <div className="p-4 bg-gradient-to-r from-[var(--color-banana-light)]/20 to-transparent rounded-xl">
-                  <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] mb-2 font-semibold uppercase tracking-wider">
-                    {Icons.image}
-                    <span>画面描述</span>
-                  </div>
-                  <div className="text-[var(--color-text-secondary)] text-sm italic">
-                    {optimized.description}
-                  </div>
-                </div>
-              )}
-
-              {/* Fallback for non-JSON responses */}
-              {!optimized && (
-                <>
-                  {displayText}
-                  {isTyping && (
-                    <span className="inline-block w-0.5 h-5 bg-[var(--color-accent-highlight)] ml-1 animate-pulse rounded-sm" />
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Timestamp */}
-        <div className={`text-xs text-[var(--color-text-muted)] mt-3 ${isUser ? 'text-right mr-3' : 'ml-3'}`}>
-          {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-        </div>
-
-        {/* Apply Button */}
-        {!isUser && showActions && index > 0 && optimized?.optimizedPrompt && (
-          <button
-            onClick={() => onApply(optimized.optimizedPrompt)}
-            className="mt-4 ml-3 px-5 py-3 text-sm font-semibold text-white bg-gradient-to-r from-[var(--color-accent-highlight)] to-[#ff8a5c] rounded-xl hover:shadow-lg hover:shadow-[var(--color-accent-highlight)]/30 transition-all duration-300 flex items-center gap-2"
-          >
-            {Icons.sparkle}
-            <span>应用此提示词</span>
-          </button>
-        )}
-      </div>
-
-      {/* User Avatar */}
-      {isUser && (
-        <div className="flex-shrink-0 ml-5">
-          <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-coral-light)] to-[var(--color-coral)] rounded-2xl flex items-center justify-center shadow-lg shadow-[var(--color-coral)]/30">
-            <span className="text-white">{Icons.user}</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+function parseOutput(raw: string) {
+  try {
+    const parsed = JSON.parse(raw) as { optimizedPrompt?: string; chineseTranslation?: string; description?: string };
+    return {
+      optimizedPrompt: parsed.optimizedPrompt || '',
+      chineseTranslation: parsed.chineseTranslation || '',
+      description: parsed.description || '',
+    };
+  } catch {
+    return { optimizedPrompt: raw, chineseTranslation: '', description: '' };
+  }
 }
 
-export default function PromptOptimizer({
-  isOpen,
-  onClose,
-  onApplyPrompt,
-  apiEndpoint,
-  apiKey,
-  apiModel,
-}: PromptOptimizerProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: '你好！我是提示词优化助手 🎨\n\n告诉我你想生成什么样的图片，我会帮你：\n\n• 优化提示词结构\n• 添加艺术风格和细节\n• 翻译为适合AI理解的英文\n• 提供画面描述\n\n例如输入："一只猫"或"山水画"',
-      timestamp: Date.now(),
-    },
-  ]);
+export default function PromptOptimizer({ isOpen, onClose, onApplyPrompt, apiEndpoint, apiKey, apiModel }: PromptOptimizerProps) {
+  const [messages, setMessages] = useState<Message[]>([{ role: 'assistant', content: UI.welcome, timestamp: Date.now() }]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
+    if (!isOpen) return;
+    setIsEntering(true);
+    const t = setTimeout(() => setIsEntering(false), 420);
+    setTimeout(() => inputRef.current?.focus(), 90);
+    return () => clearTimeout(t);
   }, [isOpen]);
 
   useEffect(() => {
@@ -304,18 +91,10 @@ export default function PromptOptimizer({
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
-
-    const userMessage = input.trim();
+    const userText = input.trim();
     setInput('');
-    
-    const userMsg: Message = {
-      role: 'user',
-      content: userMessage,
-      timestamp: Date.now(),
-    };
-    
-    setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
+    setMessages((prev) => [...prev, { role: 'user', content: userText, timestamp: Date.now() }]);
 
     try {
       const response = await fetch('/api/proxy', {
@@ -323,244 +102,114 @@ export default function PromptOptimizer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           endpoint: apiEndpoint,
-          apiKey: apiKey,
+          apiKey,
           type: 'chat',
           payload: {
             model: apiModel || 'gpt-3.5-turbo',
             stream: false,
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              ...messages.slice(1).map(m => ({ role: m.role, content: m.content })),
-              { role: 'user', content: userMessage },
-            ],
+            messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userText }],
           },
         }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || '请求失败');
-      }
-
-      const assistantContent = data.choices?.[0]?.message?.content || '抱歉，我无法处理这个请求。';
-      
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: assistantContent,
-        timestamp: Date.now(),
-      }]);
-
+      if (!response.ok) throw new Error(data.error || 'Request failed');
+      const content = data.choices?.[0]?.message?.content || '{}';
+      setMessages((prev) => [...prev, { role: 'assistant', content, timestamp: Date.now() }]);
     } catch (err) {
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: JSON.stringify({
-          optimizedPrompt: '',
-          chineseTranslation: '',
-          description: `❌ 错误: ${err instanceof Error ? err.message : '请求失败'}\n\n请检查 API 配置是否正确。`
-        }),
-        timestamp: Date.now(),
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: JSON.stringify({ optimizedPrompt: '', chineseTranslation: '', description: `${UI.requestFailed} ${err instanceof Error ? err.message : 'unknown'}` }),
+          timestamp: Date.now(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, apiEndpoint, apiKey, apiModel, messages]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const applyPrompt = (text: string) => {
-    onApplyPrompt(text);
-    onClose();
-  };
-
-  const clearHistory = () => {
-    setMessages([
-      {
-        role: 'assistant',
-        content: JSON.stringify({
-          optimizedPrompt: '',
-          chineseTranslation: '',
-          description: '对话已清空 ✨\n\n继续告诉我你想生成什么图片吧！'
-        }),
-        timestamp: Date.now(),
-      },
-    ]);
-  };
+  }, [apiEndpoint, apiKey, apiModel, input, isLoading]);
 
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-8 animate-fade-in"
-      onClick={onClose}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/40 to-[var(--color-banana-dark)]/20 backdrop-blur-md" />
-
-      {/* Modal */}
-      <div 
-        className="relative w-full max-w-4xl h-[88vh] flex flex-col bg-gradient-to-b from-white via-white to-[var(--color-bg-primary)] shadow-2xl animate-scale-in overflow-hidden"
-        style={{ borderRadius: 'var(--radius-xl)' }}
-        onClick={e => e.stopPropagation()}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
+      <div
+        className={`relative flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[26px] border border-[rgba(255,255,255,0.25)] bg-[rgba(255,255,255,0.86)] shadow-2xl backdrop-blur-xl transition-all duration-500 dark:bg-[rgba(28,25,24,0.88)] ${isEntering ? 'translate-y-3 scale-[0.985] opacity-0' : 'translate-y-0 scale-100 opacity-100'}`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="relative px-10 py-7 bg-gradient-to-r from-[var(--color-banana-light)]/60 via-white to-[var(--color-banana-light)]/40 border-b border-[rgba(42,36,32,0.06)]">
-          {/* Decorative elements */}
-          <div className="absolute top-0 left-0 w-40 h-40 bg-[var(--color-banana-medium)]/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 right-0 w-32 h-32 bg-[var(--color-accent-highlight)]/10 rounded-full blur-2xl translate-x-1/2 translate-y-1/2" />
-          
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-br from-[var(--color-banana-medium)] to-[var(--color-accent-highlight)] rounded-2xl blur opacity-40 animate-pulse" />
-                <div className="relative w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                  <span className="text-[var(--color-banana-dark)]">{Icons.robot}</span>
-                </div>
-              </div>
-              <div>
-                <h2 className="font-display text-2xl uppercase tracking-wide text-[var(--color-text-primary)]">
-                  AI 提示词优化
-                </h2>
-                <p className="text-sm text-[var(--color-text-secondary)] font-mono mt-1">
-                  智能优化 · 中英双语 · 画面描述
-                </p>
-              </div>
+        <div className="relative border-b border-[rgba(42,36,32,0.08)] bg-gradient-to-r from-[var(--color-banana-light)]/45 via-white/95 to-[var(--color-coral-light)]/20 px-5 py-4 md:px-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">{UI.title}</h2>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{UI.subtitle}</p>
             </div>
-            
-            <div className="flex items-center gap-4">
-              <button
-                onClick={clearHistory}
-                className="px-5 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-white/60 hover:bg-white rounded-xl transition-all duration-300 shadow-sm"
-              >
-                清空对话
-              </button>
-              <button
-                onClick={onClose}
-                className="w-11 h-11 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white rounded-xl transition-all duration-300 shadow-sm"
-              >
-                {Icons.close}
-              </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setMessages([{ role: 'assistant', content: UI.cleared, timestamp: Date.now() }])} className="btn-brutal btn-brutal--secondary px-3.5 py-2 text-sm">{UI.clear}</button>
+              <button onClick={onClose} className="rounded-lg p-2 text-[var(--color-text-secondary)] hover:bg-black/5" aria-label="close">{Icons.close}</button>
             </div>
           </div>
         </div>
 
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-10 py-8">
-          {/* Background pattern */}
-          <div className="absolute inset-0 opacity-[0.015] pointer-events-none"
-            style={{
-              backgroundImage: `radial-gradient(circle at 2px 2px, var(--color-text-primary) 1px, transparent 0)`,
-              backgroundSize: '40px 40px',
-            }}
-          />
-
-          {messages.map((msg, i) => (
-            <MessageBubble 
-              key={msg.timestamp} 
-              message={msg} 
-              onApply={applyPrompt}
-              index={i}
-            />
-          ))}
-
-          {/* Loading indicator */}
-          {isLoading && (
-            <div className="flex justify-start mb-8 animate-fade-in">
-              <div className="flex-shrink-0 mr-5">
-                <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-banana-medium)] to-[var(--color-banana-dark)] rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
-                  <span className="text-white">{Icons.robot}</span>
+        <div className="relative flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
+          {messages.map((msg, i) => {
+            const parsed = msg.role === 'assistant' ? parseOutput(msg.content) : null;
+            const isUser = msg.role === 'user';
+            return (
+              <div key={msg.timestamp} className={`mb-4 flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-scale`} style={{ animationDelay: `${i * 0.05}s` }}>
+                <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed md:max-w-[74%] ${isUser ? 'bg-gradient-to-br from-[var(--color-accent-highlight)] to-[#f4946c] text-white shadow-md' : 'border border-[rgba(42,36,32,0.08)] bg-white/90 text-[var(--color-text-primary)] shadow-sm dark:bg-[rgba(43,38,35,0.85)]'}`}>
+                  {isUser ? (
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {parsed?.optimizedPrompt && (<div><div className="mb-1 text-xs font-semibold tracking-wide text-[var(--color-accent-highlight)]">{UI.optimized}</div><p className="whitespace-pre-wrap">{parsed.optimizedPrompt}</p></div>)}
+                      {parsed?.chineseTranslation && (<div className="rounded-xl bg-[var(--color-banana-light)]/22 p-3"><div className="mb-1 text-xs font-semibold tracking-wide text-[var(--color-text-secondary)]">{UI.translation}</div><p className="whitespace-pre-wrap text-[var(--color-text-secondary)]">{parsed.chineseTranslation}</p></div>)}
+                      {parsed?.description && (<div><div className="mb-1 text-xs font-semibold tracking-wide text-[var(--color-text-muted)]">{UI.description}</div><p className="text-[var(--color-text-secondary)]">{parsed.description}</p></div>)}
+                      {parsed?.optimizedPrompt && (<button onClick={() => { onApplyPrompt(parsed.optimizedPrompt); onClose(); }} className="btn-brutal btn-brutal--primary px-3.5 py-2 text-xs">{UI.apply}</button>)}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="bg-white px-6 py-5 rounded-3xl rounded-tl-lg shadow-xl border border-[rgba(42,36,32,0.06)]">
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-2">
-                    <span className="w-2.5 h-2.5 bg-[var(--color-banana-medium)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-2.5 h-2.5 bg-[var(--color-banana-medium)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-2.5 h-2.5 bg-[var(--color-banana-medium)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                  <span className="text-sm text-[var(--color-text-muted)] font-mono">思考优化中...</span>
+            );
+          })}
+
+          {isLoading && (
+            <div className="mb-4 flex justify-start animate-fade-in">
+              <div className="rounded-2xl border border-[rgba(42,36,32,0.08)] bg-white/90 px-4 py-3 shadow-sm dark:bg-[rgba(43,38,35,0.85)]">
+                <div className="flex items-center gap-2.5 text-sm text-[var(--color-text-muted)]">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--color-banana-dark)]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--color-banana-dark)] [animation-delay:120ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--color-banana-dark)] [animation-delay:240ms]" />
+                  {UI.loading}
                 </div>
               </div>
             </div>
           )}
-
-          <div ref={messagesEndRef} className="h-8" />
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="relative px-10 py-7 bg-white border-t border-[rgba(42,36,32,0.06)]">
-          <div className="flex gap-5">
-            <div className="flex-1 relative">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="描述你想生成的图片，例如：一只穿西装的猫..."
-                className="w-full px-6 py-5 bg-[var(--color-bg-secondary)]/40 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-highlight)]/30 focus:bg-white transition-all duration-300 font-mono text-[15px]"
-                style={{ minHeight: '64px', maxHeight: '150px' }}
-                disabled={isLoading}
-              />
-            </div>
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
-              className={`px-7 py-5 font-medium rounded-2xl transition-all duration-300 flex items-center gap-3 ${
-                input.trim() && !isLoading
-                  ? 'bg-gradient-to-br from-[var(--color-accent-highlight)] to-[#ff8a5c] text-white shadow-lg shadow-[var(--color-accent-highlight)]/25 hover:shadow-xl hover:shadow-[var(--color-accent-highlight)]/30 hover:-translate-y-0.5'
-                  : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] cursor-not-allowed'
-              }`}
-            >
-              <span>发送</span>
-              {Icons.send}
-            </button>
+        <div className="border-t border-[rgba(42,36,32,0.08)] bg-white/75 px-4 py-4 backdrop-blur-md md:px-6">
+          <div className="flex gap-3">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void sendMessage();
+                }
+              }}
+              placeholder={UI.inputHint}
+              className="input-brutal min-h-[64px] flex-1 resize-none"
+              disabled={isLoading}
+            />
+            <button onClick={() => void sendMessage()} disabled={!input.trim() || isLoading} className={`btn-brutal btn-brutal--primary px-4 ${!input.trim() || isLoading ? 'cursor-not-allowed opacity-55' : ''}`}>{UI.send}{Icons.send}</button>
           </div>
-          
-          <div className="flex items-center justify-center mt-4 text-xs text-[var(--color-text-muted)] font-mono gap-5">
-            <span>Enter 发送</span>
-            <span>·</span>
-            <span>Shift+Enter 换行</span>
-            <span>·</span>
-            <span className={apiEndpoint ? 'text-green-600' : 'text-red-400'}>
-              {apiEndpoint ? '✓ API 已配置' : '✕ API 未配置'}
-            </span>
-          </div>
+          <div className="mt-2 text-xs text-[var(--color-text-muted)]">{UI.helper} {apiEndpoint ? UI.ready : UI.notReady}</div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes messageSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(24px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.94);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        .animate-scale-in {
-          animation: scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .border-l-3 {
-          border-left-width: 3px;
-        }
-      `}</style>
     </div>
   );
 }

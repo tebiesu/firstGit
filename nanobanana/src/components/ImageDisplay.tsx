@@ -1,41 +1,54 @@
-'use client';
+﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { GeneratedImage } from '@/app/page';
-import { 
-  getAllImages, 
-  deleteImage, 
-  toggleFavorite, 
-  clearAllImages,
-  type StoredImage 
-} from '@/lib/imageStorage';
+import { clearAllImages, deleteImage, getAllImages, toggleFavorite, type StoredImage } from '@/lib/imageStorage';
 import { Icons } from './Icons';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ImageDisplayProps {
   images: GeneratedImage[];
   isGenerating: boolean;
   generationProgress?: number;
-  onImagesChange?: (images: GeneratedImage[]) => void;
 }
 
 type DisplayImage = GeneratedImage | StoredImage;
 
-export default function ImageDisplay({ 
-  images, 
-  isGenerating, 
-  generationProgress = 0,
-  onImagesChange 
-}: ImageDisplayProps) {
+const TXT = {
+  history: '\u5386\u53f2\u8bb0\u5f55',
+  session: '\u5f53\u524d\u4f1a\u8bdd',
+  result: '\u751f\u6210\u7ed3\u679c',
+  download: '\u4e0b\u8f7d',
+  close: '\u5173\u95ed',
+  clear: '\u6e05\u7a7a',
+  start: '\u5f00\u59cb\u521b\u4f5c',
+  emptyHint: '\u914d\u7f6e API\uff0c\u8f93\u5165\u63d0\u793a\u8bcd\uff0c\u9009\u62e9\u6bd4\u4f8b\u540e\u70b9\u51fb\u201c\u751f\u6210\u56fe\u50cf\u201d\u3002',
+  generating: '\u751f\u6210\u4e2d...',
+  loadingHistory: '\u52a0\u8f7d\u5386\u53f2\u4e2d...',
+  detail: '\u56fe\u50cf\u8be6\u60c5',
+  prompt: '\u63d0\u793a\u8bcd',
+  negative: '\u8d1f\u5411\u63d0\u793a\u8bcd',
+  ratio: '\u6bd4\u4f8b',
+  resolution: '\u5206\u8fa8\u7387',
+  steps: '\u6b65\u6570',
+  zoom: '\u7f29\u653e',
+  copyPrompt: '\u590d\u5236\u63d0\u793a\u8bcd',
+  copied: '\u5df2\u590d\u5236',
+  downloadImage: '\u4e0b\u8f7d\u56fe\u50cf',
+  clearConfirm: '\u786e\u5b9a\u8981\u6e05\u7a7a\u5168\u90e8\u5386\u53f2\u8bb0\u5f55\uff1f\u8be5\u64cd\u4f5c\u4e0d\u53ef\u6062\u590d\u3002',
+};
+
+export default function ImageDisplay({ images, isGenerating, generationProgress = 0 }: ImageDisplayProps) {
   const [selectedImage, setSelectedImage] = useState<DisplayImage | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [storedImages, setStoredImages] = useState<StoredImage[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const { settings } = useTheme();
 
-  // 加载历史记录
   useEffect(() => {
-    loadHistory();
+    void loadHistory();
   }, []);
 
   const loadHistory = async () => {
@@ -43,8 +56,8 @@ export default function ImageDisplay({
     try {
       const history = await getAllImages();
       setStoredImages(history);
-    } catch (err) {
-      console.error('Failed to load history:', err);
+    } catch {
+      // Ignore
     } finally {
       setIsLoadingHistory(false);
     }
@@ -52,11 +65,9 @@ export default function ImageDisplay({
 
   const downloadImage = async (image: DisplayImage) => {
     try {
-      const url = image.url;
-      
-      if (url.startsWith('data:')) {
+      if (image.url.startsWith('data:')) {
         const a = document.createElement('a');
-        a.href = url;
+        a.href = image.url;
         a.download = `nanobanana-${Date.now()}.png`;
         document.body.appendChild(a);
         a.click();
@@ -64,7 +75,7 @@ export default function ImageDisplay({
         return;
       }
 
-      const response = await fetch(url);
+      const response = await fetch(image.url);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -79,293 +90,119 @@ export default function ImageDisplay({
     }
   };
 
-  const copyPrompt = async (prompt: string) => {
-    try {
-      await navigator.clipboard.writeText(prompt);
-      setCopyStatus('copied');
-      setTimeout(() => setCopyStatus('idle'), 2000);
-    } catch {
-      // Ignore
-    }
-  };
-
-  const handleDeleteImage = async (id: string) => {
-    try {
-      await deleteImage(id);
-      setStoredImages(prev => prev.filter(img => img.id !== id));
-    } catch (err) {
-      console.error('Failed to delete:', err);
-    }
-  };
-
-  const handleToggleFavorite = async (id: string) => {
-    try {
-      await toggleFavorite(id);
-      setStoredImages(prev => prev.map(img => 
-        img.id === id ? { ...img, favorite: !img.favorite } : img
-      ));
-    } catch (err) {
-      console.error('Failed to toggle favorite:', err);
-    }
-  };
-
   const handleClearHistory = async () => {
-    if (confirm('确定要清空所有历史记录吗？此操作不可恢复。')) {
-      await clearAllImages();
-      setStoredImages([]);
-    }
+    if (!window.confirm(TXT.clearConfirm)) return;
+    await clearAllImages();
+    setStoredImages([]);
   };
 
-  // 合并当前会话图片和历史记录
-  const allImages = [...images, ...storedImages.filter(
-    stored => !images.some(img => img.url === stored.url)
-  )];
+  const visibleImages = showHistory ? storedImages : images;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Toolbar */}
-      <div className="bg-white/60 backdrop-blur-sm border-b border-[rgba(42,36,32,0.08)] px-8 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-5">
-            <div className="flex items-center gap-3">
-              <div className="w-5 h-5 text-[var(--color-accent-highlight)]">
-                {Icons.image}
-              </div>
-              <span className="font-display text-sm uppercase tracking-wider text-[var(--color-text-primary)]">
-                {showHistory ? '历史记录' : '生成结果'}
-              </span>
-            </div>
-            <span className="font-mono text-xs text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] px-3 py-1.5 rounded-full">
-              {showHistory ? storedImages.length : images.length} 张
-            </span>
+    <div className="flex h-full flex-col">
+      <div
+        className="border-b border-[rgba(42,36,32,0.08)] bg-white/60 px-4 py-3.5 lg:px-6"
+        style={{ backdropFilter: settings.glassEffect ? 'blur(12px)' : 'none' }}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 text-[var(--color-accent-highlight)]">{Icons.image}</div>
+            <span className="text-sm font-medium tracking-wide text-[var(--color-text-primary)]">{showHistory ? TXT.history : TXT.result}</span>
+            <span className="rounded-full bg-[var(--color-bg-secondary)] px-3 py-1 text-xs font-mono text-[var(--color-text-muted)]">{visibleImages.length}</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Toggle History */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowHistory(!showHistory)}
-              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 ${
+              onClick={() => setShowHistory((v) => !v)}
+              className={`rounded-xl px-3.5 py-2 text-sm transition-all ${
                 showHistory
-                  ? 'bg-gradient-to-br from-[var(--color-accent-highlight)] to-[#ff8a5c] text-white shadow-md'
-                  : 'bg-white/60 text-[var(--color-text-secondary)] hover:bg-white hover:text-[var(--color-text-primary)] border border-[rgba(42,36,32,0.08)]'
+                  ? 'bg-gradient-to-br from-[var(--color-accent-highlight)] to-[#f19467] text-white shadow-sm'
+                  : 'border border-[rgba(42,36,32,0.1)] bg-white/65 text-[var(--color-text-secondary)] hover:bg-white'
               }`}
             >
-              <div className="w-4 h-4">{Icons.history}</div>
-              {showHistory ? '当前会话' : '历史记录'}
+              {showHistory ? TXT.session : TXT.history}
             </button>
 
             {selectedImage && (
               <>
-                <button
-                  onClick={() => downloadImage(selectedImage)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-white/60 hover:bg-white rounded-xl transition-all duration-300 border border-[rgba(42,36,32,0.08)]"
-                >
-                  <div className="w-4 h-4">{Icons.download}</div>
-                  下载
-                </button>
-                <button
-                  onClick={() => setSelectedImage(null)}
-                  className="px-4 py-2.5 text-sm font-medium bg-white/60 hover:bg-white rounded-xl transition-all duration-300 border border-[rgba(42,36,32,0.08)]"
-                >
-                  <div className="w-4 h-4">{Icons.close}</div>
-                </button>
+                <button onClick={() => void downloadImage(selectedImage)} className="rounded-xl border border-[rgba(42,36,32,0.1)] bg-white/65 px-3.5 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-white">{TXT.download}</button>
+                <button onClick={() => setSelectedImage(null)} className="rounded-xl border border-[rgba(42,36,32,0.1)] bg-white/65 px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-white">{TXT.close}</button>
               </>
             )}
 
             {showHistory && storedImages.length > 0 && (
-              <button
-                onClick={handleClearHistory}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-300"
-              >
-                <div className="w-4 h-4">{Icons.trash}</div>
-                清空
-              </button>
+              <button onClick={() => void handleClearHistory()} className="rounded-xl bg-red-50 px-3.5 py-2 text-sm text-red-500 hover:bg-red-100">{TXT.clear}</button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Main Display Area */}
-      <div className="flex-1 overflow-hidden relative bg-gradient-to-br from-[var(--color-bg-primary)] via-white/50 to-[var(--color-bg-secondary)]">
-        {/* Empty State */}
-        {allImages.length === 0 && !isGenerating && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-10 animate-fade-in">
-            <div className="text-center max-w-lg">
-              <div className="relative inline-block mb-10">
-                <div className="absolute -inset-10 bg-gradient-to-br from-[var(--color-banana-light)] to-transparent rounded-full opacity-40 blur-3xl animate-pulse" />
-                <span className="relative text-9xl animate-float drop-shadow-2xl">🍌</span>
+      <div className="relative flex-1 overflow-hidden bg-gradient-to-br from-[var(--color-bg-primary)] via-white/35 to-[var(--color-bg-secondary)]">
+        {visibleImages.length === 0 && !isGenerating && (
+          <div className="absolute inset-0 flex items-center justify-center p-8 animate-fade-in">
+            <div className="max-w-lg text-center">
+              <div className="relative mb-8 inline-block">
+                <div className="absolute -inset-8 rounded-full bg-gradient-to-br from-[var(--color-banana-light)] to-transparent opacity-45 blur-3xl" />
+                <span className="relative text-8xl animate-float">{'\u{1F34C}'}</span>
               </div>
-
-              <h3 className="font-display text-3xl uppercase tracking-wider mb-5 text-[var(--color-text-primary)]">
-                准备创作
-              </h3>
-              
-              <div className="space-y-4 text-[var(--color-text-secondary)] font-mono text-sm bg-white/60 backdrop-blur-sm p-8 rounded-2xl">
-                <p className="flex items-center gap-4">
-                  <span className="w-8 h-8 bg-gradient-to-br from-[var(--color-banana-light)] to-[var(--color-banana-medium)] rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md">1</span>
-                  配置你的 API 端点
-                </p>
-                <p className="flex items-center gap-4">
-                  <span className="w-8 h-8 bg-gradient-to-br from-[var(--color-banana-light)] to-[var(--color-banana-medium)] rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md">2</span>
-                  输入创意提示词
-                </p>
-                <p className="flex items-center gap-4">
-                  <span className="w-8 h-8 bg-gradient-to-br from-[var(--color-banana-light)] to-[var(--color-banana-medium)] rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md">3</span>
-                  选择比例和分辨率
-                </p>
-                <p className="flex items-center gap-4">
-                  <span className="w-8 h-8 bg-gradient-to-br from-[var(--color-accent-highlight)] to-[#ff8a5c] rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md">4</span>
-                  点击生成 🍌
-                </p>
-              </div>
-
-              <div className="mt-12 flex justify-center gap-3">
-                {[...Array(5)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-2.5 h-2.5 bg-gradient-to-br from-[var(--color-banana-light)] to-[var(--color-banana-medium)] rounded-full animate-float shadow-sm"
-                    style={{ animationDelay: `${i * 0.15}s` }}
-                  />
-                ))}
-              </div>
+              <h3 className="mb-4 text-3xl">{TXT.start}</h3>
+              <p className="mx-auto max-w-md rounded-2xl border border-[rgba(42,36,32,0.08)] bg-white/65 p-5 text-sm text-[var(--color-text-secondary)]">{TXT.emptyHint}</p>
             </div>
           </div>
         )}
 
-        {/* Generating State with Progress */}
         {isGenerating && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/90 backdrop-blur-sm z-10 animate-fade-in">
-            <div className="text-center px-10">
-              {/* Animated banana */}
-              <div className="relative inline-block mb-8">
-                <div className="absolute -inset-16 bg-gradient-to-br from-[var(--color-banana-light)] via-[var(--color-accent-highlight)] to-[var(--color-coral)] rounded-full opacity-30 blur-3xl animate-pulse" />
-                <div className="relative">
-                  <span className="text-8xl animate-spin inline-block drop-shadow-2xl" style={{ animationDuration: '3s' }}>
-                    🍌
-                  </span>
-                </div>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/86 backdrop-blur-sm animate-fade-in dark:bg-black/50">
+            <div className="px-8 text-center">
+              <div className="relative mb-6 inline-block">
+                <div className="absolute -inset-14 rounded-full bg-gradient-to-br from-[var(--color-banana-light)] via-[var(--color-accent-highlight)] to-[var(--color-coral)] opacity-30 blur-3xl" />
+                <span className="relative inline-block text-7xl animate-spin" style={{ animationDuration: '3s' }}>{'\u{1F34C}'}</span>
               </div>
-
-              {/* Progress bar */}
-              <div className="w-80 mx-auto mb-6">
-                <div className="h-3 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden shadow-inner">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[var(--color-banana-medium)] via-[var(--color-accent-highlight)] to-[var(--color-coral)] rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${Math.min(generationProgress, 95)}%` }}
-                  />
+              <div className="mx-auto mb-4 w-72">
+                <div className="h-2.5 overflow-hidden rounded-full bg-[var(--color-bg-tertiary)]">
+                  <div className="h-full rounded-full bg-gradient-to-r from-[var(--color-banana-medium)] via-[var(--color-accent-highlight)] to-[var(--color-coral)] transition-all duration-300" style={{ width: `${Math.min(generationProgress, 95)}%` }} />
                 </div>
-                <div className="flex justify-between mt-3 text-sm font-mono">
-                  <span className="text-[var(--color-text-muted)]">生成中...</span>
-                  <span className="text-[var(--color-accent-highlight)] font-bold">
-                    {Math.round(generationProgress)}%
-                  </span>
-                </div>
+                <div className="mt-2 flex justify-between text-xs text-[var(--color-text-muted)]"><span>{TXT.generating}</span><span>{Math.round(generationProgress)}%</span></div>
               </div>
-
-              <p className="font-display text-xl uppercase tracking-wider text-[var(--color-text-primary)] mb-3">
-                正在创作
-              </p>
-              <p className="text-sm text-[var(--color-text-muted)] font-mono">
-                请稍候，AI 正在为你绘制作品...
-              </p>
             </div>
           </div>
         )}
 
-        {/* Loading History */}
         {showHistory && isLoadingHistory && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm animate-fade-in">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm animate-fade-in">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-[var(--color-banana-medium)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-sm text-[var(--color-text-muted)] font-mono">加载历史记录...</p>
+              <div className="mx-auto mb-3 h-10 w-10 rounded-full border-4 border-[var(--color-banana-medium)] border-t-transparent animate-spin" />
+              <p className="text-sm text-[var(--color-text-muted)]">{TXT.loadingHistory}</p>
             </div>
           </div>
         )}
 
-        {/* Image Grid */}
-        {allImages.length > 0 && !selectedImage && (
-          <div className="h-full overflow-y-auto p-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {(showHistory ? storedImages : images).map((image, index) => {
+        {visibleImages.length > 0 && !selectedImage && (
+          <div className="h-full overflow-y-auto p-4 lg:p-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {visibleImages.map((image, index) => {
                 const isStored = 'id' in image;
                 const imageId = isStored ? (image as StoredImage).id : `session-${index}`;
-                
                 return (
-                  <div
-                    key={imageId}
-                    className="group relative overflow-hidden cursor-pointer animate-fade-scale"
-                    style={{ 
-                      animationDelay: `${index * 0.06}s`,
-                      borderRadius: 'var(--radius-xl)'
-                    }}
-                    onClick={() => setSelectedImage(image)}
-                  >
-                    <div 
-                      className="aspect-square bg-[var(--color-bg-tertiary)] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500"
-                      style={{ borderRadius: 'var(--radius-xl)' }}
-                    >
-                      <img
-                        src={image.url}
-                        alt={image.prompt}
-                        className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
-                      />
+                  <div key={imageId} className="group relative cursor-pointer overflow-hidden rounded-2xl animate-fade-scale" style={{ animationDelay: `${index * 0.04}s` }} onClick={() => setSelectedImage(image)}>
+                    <div className="aspect-square overflow-hidden rounded-2xl bg-[var(--color-bg-tertiary)] shadow-md transition-all duration-500 group-hover:shadow-xl">
+                      <img src={image.url} alt={image.prompt} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     </div>
-
-                    {/* Favorite indicator */}
-                    {isStored && (image as StoredImage).favorite && (
-                      <div className="absolute top-4 left-4 w-8 h-8 bg-[var(--color-accent-highlight)] text-white rounded-full flex items-center justify-center shadow-lg">
-                        <div className="w-4 h-4">{Icons.star}</div>
-                      </div>
-                    )}
-
-                    {/* Overlay */}
-                    <div 
-                      className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"
-                      style={{ borderRadius: 'var(--radius-xl)' }}
-                    >
-                      <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <p className="text-white text-sm font-mono line-clamp-2 mb-3">
-                          {image.prompt}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-white/60 font-mono">
-                          <span className="bg-white/20 px-2.5 py-1 rounded-full">{image.params.aspectRatio}</span>
-                          <span className="bg-white/20 px-2.5 py-1 rounded-full">{image.params.resolution}px</span>
+                    <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-t from-black/78 via-black/15 to-transparent opacity-0 transition-opacity duration-400 group-hover:opacity-100">
+                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                        <p className="line-clamp-2 text-sm">{image.prompt}</p>
+                        <div className="mt-2 flex gap-2 text-xs text-white/80">
+                          <span className="rounded-full bg-white/20 px-2 py-1">{image.params.aspectRatio}</span>
+                          <span className="rounded-full bg-white/20 px-2 py-1">{image.params.resolution}px</span>
                         </div>
                       </div>
-
-                      {/* Action buttons */}
-                      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        {isStored && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleFavorite((image as StoredImage).id);
-                            }}
-                            className="w-9 h-9 bg-white/20 backdrop-blur-sm hover:bg-white/40 text-white rounded-full flex items-center justify-center transition-all duration-300"
-                          >
-                            <div className="w-4 h-4">
-                              {(image as StoredImage).favorite ? Icons.star : Icons.starOutline}
-                            </div>
-                          </button>
-                        )}
-                        {isStored && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteImage((image as StoredImage).id);
-                            }}
-                            className="w-9 h-9 bg-red-500/60 backdrop-blur-sm hover:bg-red-500 text-white rounded-full flex items-center justify-center transition-all duration-300"
-                          >
-                            <div className="w-4 h-4">{Icons.trash}</div>
-                          </button>
-                        )}
+                    </div>
+                    {isStored && (
+                      <div className="absolute right-3 top-3 flex gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <button onClick={(e) => { e.stopPropagation(); void toggleFavorite((image as StoredImage).id); }} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/28 text-white backdrop-blur-sm"><div className="h-4 w-4">{(image as StoredImage).favorite ? Icons.star : Icons.starOutline}</div></button>
+                        <button onClick={(e) => { e.stopPropagation(); void deleteImage((image as StoredImage).id); setStoredImages((prev) => prev.filter((it) => it.id !== (image as StoredImage).id)); }} className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/65 text-white"><div className="h-4 w-4">{Icons.trash}</div></button>
                       </div>
-                    </div>
-
-                    {/* Index badge */}
-                    <div className="absolute top-4 left-4 w-8 h-8 bg-black/50 backdrop-blur-sm text-white font-mono text-sm flex items-center justify-center rounded-full border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      {index + 1}
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -373,129 +210,85 @@ export default function ImageDisplay({
           </div>
         )}
 
-        {/* Selected Image Detail View */}
         {selectedImage && (
-          <div className="h-full flex flex-col lg:flex-row animate-fade-in">
-            <div className="flex-1 flex items-center justify-center p-8 bg-[var(--color-bg-tertiary)]/50 overflow-hidden">
-              <div 
-                className="relative max-w-full max-h-full transition-transform duration-500 ease-out"
-                style={{ transform: `scale(${zoomLevel})` }}
-              >
-                <img
-                  src={selectedImage.url}
-                  alt={selectedImage.prompt}
-                  className="max-w-full max-h-[calc(100vh-280px)] object-contain rounded-2xl shadow-2xl"
-                />
-              </div>
-            </div>
-
-            <div className="w-full lg:w-96 bg-white/90 backdrop-blur-sm p-8 overflow-y-auto border-t lg:border-t-0 lg:border-l border-[rgba(42,36,32,0.08)]">
-              <h3 className="font-display text-lg uppercase tracking-wider mb-6 text-[var(--color-text-primary)] flex items-center gap-3">
-                <div className="w-5 h-5 text-[var(--color-accent-highlight)]">
-                  {Icons.image}
-                </div>
-                图像详情
-              </h3>
-
-              <div className="space-y-5">
-                <div>
-                  <label className="label-brutal">提示词</label>
-                  <p className="font-mono text-sm bg-white p-5 border border-[rgba(42,36,32,0.1)] rounded-xl shadow-sm">
-                    {selectedImage.prompt}
-                  </p>
-                </div>
-
-                {'negativePrompt' in selectedImage.params && selectedImage.params.negativePrompt && (
-                  <div>
-                    <label className="label-brutal">负向提示词</label>
-                    <p className="font-mono text-sm bg-white p-5 border border-[rgba(42,36,32,0.1)] rounded-xl shadow-sm">
-                      {selectedImage.params.negativePrompt}
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <label className="label-brutal">参数</label>
-                  <div className="grid grid-cols-2 gap-3 font-mono text-xs">
-                    <div className="bg-white p-4 border border-[rgba(42,36,32,0.1)] rounded-xl shadow-sm">
-                      <span className="text-[var(--color-text-muted)]">比例</span>
-                      <div className="font-bold text-lg mt-1">{selectedImage.params.aspectRatio}</div>
-                    </div>
-                    <div className="bg-white p-4 border border-[rgba(42,36,32,0.1)] rounded-xl shadow-sm">
-                      <span className="text-[var(--color-text-muted)]">分辨率</span>
-                      <div className="font-bold text-lg mt-1">{selectedImage.params.resolution}px</div>
-                    </div>
-                    <div className="bg-white p-4 border border-[rgba(42,36,32,0.1)] rounded-xl shadow-sm">
-                      <span className="text-[var(--color-text-muted)]">模型</span>
-                      <div className="font-bold mt-1 truncate" title={selectedImage.params.model}>
-                        {selectedImage.params.model || '默认'}
-                      </div>
-                    </div>
-                    <div className="bg-white p-4 border border-[rgba(42,36,32,0.1)] rounded-xl shadow-sm">
-                      <span className="text-[var(--color-text-muted)]">步数</span>
-                      <div className="font-bold text-lg mt-1">{selectedImage.params.steps}</div>
-                    </div>
-                    {selectedImage.params.seed !== null && (
-                      <div className="col-span-2 bg-gradient-to-r from-[var(--color-banana-light)]/30 to-white p-4 border border-[rgba(42,36,32,0.1)] rounded-xl shadow-sm">
-                        <span className="text-[var(--color-text-muted)]">种子</span>
-                        <div className="font-bold mt-1">{selectedImage.params.seed}</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label-brutal">生成时间</label>
-                  <p className="font-mono text-sm text-[var(--color-text-muted)]">
-                    {new Date(selectedImage.timestamp).toLocaleString('zh-CN')}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="label-brutal">缩放</label>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
-                      className="flex-1 py-3 text-lg bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] rounded-xl transition-all duration-300 flex items-center justify-center"
-                    >
-                      <div className="w-5 h-5">{Icons.minus}</div>
-                    </button>
-                    <span className="flex-1 flex items-center justify-center bg-white border border-[rgba(42,36,32,0.1)] rounded-xl font-mono shadow-sm text-sm">
-                      {Math.round(zoomLevel * 100)}%
-                    </span>
-                    <button
-                      onClick={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
-                      className="flex-1 py-3 text-lg bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] rounded-xl transition-all duration-300 flex items-center justify-center"
-                    >
-                      <div className="w-5 h-5">{Icons.plus}</div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-3 pt-3">
-                  <button
-                    onClick={() => downloadImage(selectedImage)}
-                    className="btn-brutal btn-brutal--primary w-full py-4 flex items-center justify-center gap-3"
+          <div className="h-full overflow-y-auto animate-fade-in">
+            <div className="mx-auto w-full max-w-[1200px] space-y-[clamp(10px,1.6vh,18px)] p-4 lg:p-6">
+              <div className="relative rounded-3xl border border-[rgba(42,36,32,0.08)] bg-[radial-gradient(circle_at_20%_12%,rgba(235,215,121,0.2),transparent_38%),radial-gradient(circle_at_82%_28%,rgba(235,186,169,0.18),transparent_40%),linear-gradient(145deg,var(--color-bg-primary),var(--color-bg-secondary))] p-3 lg:p-4">
+                <div className="flex justify-center">
+                  <div
+                    className="relative flex max-w-full items-center justify-center rounded-3xl border border-white/50 bg-white/45 p-3 shadow-[0_28px_60px_rgba(42,36,32,0.16)] backdrop-blur-sm transition-transform duration-500 dark:border-white/10 dark:bg-black/15"
+                    style={{ transform: `scale(${zoomLevel})` }}
                   >
-                    <div className="w-5 h-5">{Icons.download}</div>
-                    下载图片
-                  </button>
-                  <div className="flex gap-3">
+                    <img
+                      src={selectedImage.url}
+                      alt={selectedImage.prompt}
+                      className="max-h-[min(68vh,920px)] max-w-[min(100%,980px)] rounded-2xl object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="w-full rounded-3xl border border-[rgba(42,36,32,0.08)] bg-white/92 p-5 lg:p-6"
+                style={{ backdropFilter: settings.glassEffect ? 'blur(8px)' : 'none' }}
+              >
+                <h3 className="mb-5 text-lg">{TXT.detail}</h3>
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <label className="label-brutal">{TXT.prompt}</label>
+                    <p className="rounded-xl border border-[rgba(42,36,32,0.12)] bg-white/75 p-4 text-[var(--color-text-secondary)]">{selectedImage.prompt}</p>
+                  </div>
+
+                  {selectedImage.negativePrompt && (
+                    <div>
+                      <label className="label-brutal">{TXT.negative}</label>
+                      <p className="rounded-xl border border-[rgba(42,36,32,0.12)] bg-white/75 p-4 text-[var(--color-text-secondary)]">{selectedImage.negativePrompt}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="rounded-xl border border-[rgba(42,36,32,0.12)] bg-white/75 p-3">
+                      <div className="text-xs text-[var(--color-text-muted)]">{TXT.ratio}</div>
+                      <div className="mt-1 font-medium">{selectedImage.params.aspectRatio}</div>
+                    </div>
+                    <div className="rounded-xl border border-[rgba(42,36,32,0.12)] bg-white/75 p-3">
+                      <div className="text-xs text-[var(--color-text-muted)]">{TXT.resolution}</div>
+                      <div className="mt-1 font-medium">{selectedImage.params.resolution}px</div>
+                    </div>
+                    <div className="rounded-xl border border-[rgba(42,36,32,0.12)] bg-white/75 p-3">
+                      <div className="text-xs text-[var(--color-text-muted)]">{TXT.steps}</div>
+                      <div className="mt-1 font-medium">{selectedImage.params.steps}</div>
+                    </div>
+                    <div className="rounded-xl border border-[rgba(42,36,32,0.12)] bg-white/75 p-3">
+                      <div className="text-xs text-[var(--color-text-muted)]">CFG</div>
+                      <div className="mt-1 font-medium">{selectedImage.params.guidance.toFixed(1)}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label-brutal">{TXT.zoom}</label>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setZoomLevel((z) => Math.max(0.5, z - 0.25))} className="btn-brutal btn-brutal--secondary px-3 py-2">
+                        <div className="h-4 w-4">{Icons.minus}</div>
+                      </button>
+                      <div className="min-w-16 rounded-xl border border-[rgba(42,36,32,0.12)] bg-white/75 px-3 py-2 text-center font-mono text-xs">{Math.round(zoomLevel * 100)}%</div>
+                      <button onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))} className="btn-brutal btn-brutal--secondary px-3 py-2">
+                        <div className="h-4 w-4">{Icons.plus}</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5 pt-1">
+                    <button onClick={() => void downloadImage(selectedImage)} className="btn-brutal btn-brutal--primary py-3">{TXT.downloadImage}</button>
                     <button
-                      onClick={() => copyPrompt(selectedImage.prompt)}
-                      className="btn-brutal btn-brutal--secondary flex-1 py-3 flex items-center justify-center gap-2"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(selectedImage.prompt);
+                        setCopyStatus('copied');
+                        setTimeout(() => setCopyStatus('idle'), 1200);
+                      }}
+                      className="btn-brutal btn-brutal--secondary py-3"
                     >
-                      <div className="w-4 h-4">{copyStatus === 'copied' ? Icons.check : Icons.copy}</div>
-                      {copyStatus === 'copied' ? '已复制' : '提示词'}
-                    </button>
-                    <button
-                      onClick={() => copyPrompt(selectedImage.url)}
-                      className="btn-brutal btn-brutal--secondary flex-1 py-3 flex items-center justify-center gap-2"
-                      title="复制图片链接或Base64"
-                    >
-                      <div className="w-4 h-4">{Icons.link}</div>
-                      链接
+                      {copyStatus === 'copied' ? TXT.copied : TXT.copyPrompt}
                     </button>
                   </div>
                 </div>

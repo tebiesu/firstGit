@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { GenerationParams, ApiConfig } from '@/app/page';
 import { Icons } from './Icons';
 
@@ -34,10 +34,17 @@ const RESOLUTIONS = [
 ];
 
 const STEP_PRESETS = [
-  { value: 15, label: '快速', desc: '15步' },
-  { value: 30, label: '标准', desc: '30步' },
-  { value: 50, label: '精细', desc: '50步' },
-  { value: 80, label: '极致', desc: '80步' },
+  { value: 15, label: '快速' },
+  { value: 30, label: '标准' },
+  { value: 50, label: '精细' },
+  { value: 80, label: '极致' },
+];
+
+const PRESET_PROMPTS = [
+  '一只穿西装的猫坐在办公桌前，超写实风格',
+  '赛博朋克城市夜景，雨夜霓虹，电影感构图',
+  '中国水墨山水，留白艺术，远山薄雾',
+  '未来主义空间站，星云背景，细节丰富',
 ];
 
 export default function GeneratorPanel({
@@ -58,13 +65,10 @@ export default function GeneratorPanel({
     setLocalParams(params);
   }, [params]);
 
-  const updateParam = <K extends keyof GenerationParams>(
-    key: K,
-    value: GenerationParams[K]
-  ) => {
-    const newParams = { ...localParams, [key]: value };
-    setLocalParams(newParams);
-    onChange(newParams);
+  const updateParam = <K extends keyof GenerationParams>(key: K, value: GenerationParams[K]) => {
+    const next = { ...localParams, [key]: value };
+    setLocalParams(next);
+    onChange(next);
   };
 
   const generateRandomSeed = () => {
@@ -75,85 +79,58 @@ export default function GeneratorPanel({
     updateParam('seed', null);
   };
 
-  const presetPrompts = [
-    '一只穿着西装的猫坐在办公桌前，超写实风格',
-    '赛博朋克城市的霓虹灯街道，雨夜氛围，电影质感',
-    '中国水墨画风格的山水，意境悠远，留白艺术',
-    '未来主义风格的太空站，星辰大海背景，科幻感',
-  ];
-
-  // 获取当前选择的分辨率描述
-  const getCurrentResolutionDesc = () => {
-    const res = RESOLUTIONS.find(r => r.value === localParams.resolution);
-    const ratio = ASPECT_RATIOS.find(r => r.value === localParams.aspectRatio);
-    return `${ratio?.desc || ''} ${res?.desc || ''} (${localParams.aspectRatio}, ${localParams.resolution}px)`.trim();
-  };
+  const currentRatio = ASPECT_RATIOS.find((r) => r.value === localParams.aspectRatio)?.desc ?? '';
+  const currentResolution = RESOLUTIONS.find((r) => r.value === localParams.resolution)?.desc ?? '';
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="p-10 space-y-10">
-        {/* Section: Prompt */}
+      <div className="mx-auto w-full max-w-[720px] space-y-8 p-5 pb-8 lg:p-7">
         <section className="space-y-6 animate-fade-scale stagger-1">
-          <div className="flex items-center gap-5">
-            <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-banana-light)] to-[var(--color-banana-medium)] rounded-2xl flex items-center justify-center shadow-lg">
-              <div className="w-6 h-6 text-[var(--color-banana-dark)]">
-                {Icons.pencil}
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[var(--color-banana-light)] to-[var(--color-banana-medium)] shadow-[var(--shadow-banana)] flex items-center justify-center">
+              <div className="h-5 w-5 text-[var(--color-banana-dark)]">{Icons.pencil}</div>
             </div>
             <div>
-              <h2 className="font-display text-xl uppercase tracking-wider">
-                提示词
-              </h2>
-              <p className="text-xs text-[var(--color-text-muted)] font-mono mt-1">
-                描述你想要生成的图像
-              </p>
+              <h2 className="font-display text-xl tracking-wide">提示词</h2>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">描述你想生成的图像内容</p>
             </div>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <label className="label-brutal mb-0">正向提示词</label>
-                <button
-                  type="button"
-                  onClick={onOpenOptimizer}
-                  className="btn-brutal btn-brutal--secondary text-xs py-2 px-5 flex items-center gap-2"
-                >
-                  <div className="w-4 h-4">{Icons.sparkle}</div>
+                <button type="button" onClick={onOpenOptimizer} className="btn-brutal btn-brutal--secondary px-4 py-2 text-xs">
+                  <div className="h-4 w-4">{Icons.sparkle}</div>
                   AI 优化
                 </button>
               </div>
               <textarea
-                className="input-brutal min-h-[140px] resize-y"
-                placeholder="描述你想要生成的图像..."
+                className="input-brutal min-h-[130px] resize-y"
+                placeholder="例如：柔和阳光下的印象派花园，莫奈笔触，电影感构图"
                 value={localParams.prompt}
                 onChange={(e) => updateParam('prompt', e.target.value)}
               />
-              
-              {/* Size info badge */}
+
               {includeSizeInPrompt && localParams.prompt && (
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-[var(--color-banana-light)]/30 rounded-xl text-xs font-mono text-[var(--color-text-secondary)]">
-                    <div className="w-4 h-4">{Icons.aspectRatio}</div>
-                    <span>{getCurrentResolutionDesc()}</span>
-                  </div>
-                  <button
-                    onClick={() => setIncludeSizeInPrompt(false)}
-                    className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-                  >
+                <div className="mt-2.5 flex items-center gap-2">
+                  <span className="rounded-xl bg-[var(--color-banana-light)]/30 px-3 py-1.5 text-xs text-[var(--color-text-secondary)]">
+                    {currentRatio} {currentResolution} ({localParams.aspectRatio} / {localParams.resolution}px)
+                  </span>
+                  <button type="button" className="text-xs text-[var(--color-text-muted)]" onClick={() => setIncludeSizeInPrompt(false)}>
                     隐藏
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Quick Prompts */}
-            <div className="flex flex-wrap gap-3">
-              {presetPrompts.map((prompt, i) => (
+            <div className="flex flex-wrap gap-2.5">
+              {PRESET_PROMPTS.map((prompt, i) => (
                 <button
-                  key={i}
+                  key={prompt}
+                  type="button"
                   onClick={() => updateParam('prompt', prompt)}
-                  className="text-xs font-mono px-5 py-2.5 bg-white/80 border border-[rgba(42,36,32,0.1)] rounded-xl hover:bg-[var(--color-banana-light)] hover:border-[var(--color-banana-medium)] hover:shadow-md transition-all duration-300"
+                  className="rounded-xl border border-[rgba(42,36,32,0.12)] bg-white/70 px-4 py-2 text-xs font-mono transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-banana-medium)] hover:bg-[var(--color-banana-light)]"
                 >
                   示例 {i + 1}
                 </button>
@@ -163,8 +140,8 @@ export default function GeneratorPanel({
             <div>
               <label className="label-brutal">负向提示词</label>
               <textarea
-                className="input-brutal min-h-[80px] resize-y"
-                placeholder="描述不想出现的内容（可选）"
+                className="input-brutal min-h-[82px] resize-y"
+                placeholder="可选：不希望出现的元素"
                 value={localParams.negativePrompt}
                 onChange={(e) => updateParam('negativePrompt', e.target.value)}
               />
@@ -172,109 +149,83 @@ export default function GeneratorPanel({
           </div>
         </section>
 
-        {/* Divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-[rgba(42,36,32,0.1)] to-transparent" />
+        <div className="h-px bg-gradient-to-r from-transparent via-[rgba(42,36,32,0.12)] to-transparent" />
 
-        {/* Section: Aspect Ratio */}
         <section className="space-y-6 animate-fade-scale stagger-2">
-          <div className="flex items-center gap-5">
-            <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-coral-light)] to-[var(--color-coral)] rounded-2xl flex items-center justify-center shadow-lg">
-              <div className="w-6 h-6 text-white">
-                {Icons.aspectRatio}
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[var(--color-coral-light)] to-[var(--color-coral)] shadow-lg flex items-center justify-center">
+              <div className="h-5 w-5 text-white">{Icons.aspectRatio}</div>
             </div>
             <div>
-              <h2 className="font-display text-xl uppercase tracking-wider">
-                比例
-              </h2>
-              <p className="text-xs text-[var(--color-text-muted)] font-mono mt-1">
-                选择图片的长宽比
-              </p>
+              <h2 className="font-display text-xl tracking-wide">比例</h2>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">选择画幅比例</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+            {ASPECT_RATIOS.map((ratio) => (
+              <button
+                key={ratio.value}
+                type="button"
+                onClick={() => updateParam('aspectRatio', ratio.value)}
+                className={`rounded-2xl border p-3.5 text-sm font-mono transition-all duration-300 sm:p-4 ${
+                  localParams.aspectRatio === ratio.value
+                    ? 'scale-[1.02] border-[var(--color-banana-medium)] bg-[var(--color-banana-light)] shadow-md'
+                    : 'border-[rgba(42,36,32,0.08)] bg-white/60 hover:border-[rgba(42,36,32,0.16)] hover:bg-white'
+                }`}
+              >
+                <div className="font-bold">{ratio.label}</div>
+                <div className="mt-1 text-xs opacity-65">{ratio.desc}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-6 animate-fade-scale stagger-3">
+          <div className="flex items-center gap-4">
+            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] shadow-lg flex items-center justify-center">
+              <div className="h-5 w-5 text-white">{Icons.resolution}</div>
+            </div>
+            <div>
+              <h2 className="font-display text-xl tracking-wide">分辨率</h2>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">分辨率越高，生成耗时越长</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            {ASPECT_RATIOS.map((ratio) => (
-              <button
-                key={ratio.value}
-                onClick={() => updateParam('aspectRatio', ratio.value)}
-                className={`p-4 font-mono text-sm border-2 transition-all duration-300 ${
-                  localParams.aspectRatio === ratio.value
-                    ? 'bg-[var(--color-banana-light)] border-[var(--color-banana-medium)] shadow-lg scale-105'
-                    : 'bg-white/60 border-transparent hover:bg-white hover:border-[rgba(42,36,32,0.1)]'
-                }`}
-                style={{ borderRadius: 'var(--radius-lg)' }}
-              >
-                <div className="font-bold">{ratio.label}</div>
-                <div className="text-xs mt-1 opacity-60">{ratio.desc}</div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Section: Resolution */}
-        <section className="space-y-6 animate-fade-scale stagger-3">
-          <div className="flex items-center gap-5">
-            <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] rounded-2xl flex items-center justify-center shadow-lg">
-              <div className="w-6 h-6 text-white">
-                {Icons.resolution}
-              </div>
-            </div>
-            <div>
-              <h2 className="font-display text-xl uppercase tracking-wider">
-                分辨率
-              </h2>
-              <p className="text-xs text-[var(--color-text-muted)] font-mono mt-1">
-                更高的分辨率需要更长生成时间
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
             {RESOLUTIONS.map((res) => (
               <button
                 key={res.value}
+                type="button"
                 onClick={() => updateParam('resolution', res.value)}
-                className={`p-5 font-mono text-sm border-2 transition-all duration-300 ${
+                className={`rounded-2xl border p-4 text-sm font-mono transition-all duration-300 ${
                   localParams.resolution === res.value
-                    ? 'bg-gradient-to-br from-[var(--color-accent-highlight)] to-[#ff8a5c] text-white border-transparent shadow-lg scale-105'
-                    : 'bg-white/60 border-transparent hover:bg-white hover:border-[rgba(42,36,32,0.1)]'
+                    ? 'scale-[1.02] border-transparent bg-gradient-to-br from-[var(--color-accent-highlight)] to-[#ff8a5c] text-white shadow-md'
+                    : 'border-[rgba(42,36,32,0.08)] bg-white/60 hover:border-[rgba(42,36,32,0.16)] hover:bg-white'
                 }`}
-                style={{ borderRadius: 'var(--radius-lg)' }}
               >
-                <div className="font-bold text-lg">{res.label}</div>
-                <div className="text-xs opacity-70 mt-1">{res.desc}</div>
+                <div className="text-lg font-bold">{res.label}</div>
+                <div className="mt-1 text-xs opacity-75">{res.desc}</div>
               </button>
             ))}
           </div>
         </section>
 
-        {/* Section: Model */}
         <section className="space-y-6 animate-fade-scale stagger-4">
-          <div className="flex items-center gap-5">
-            <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-banana-peel)] to-[var(--color-banana-dark)] rounded-2xl flex items-center justify-center shadow-lg">
-              <div className="w-6 h-6 text-white">
-                {Icons.robot}
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-[var(--color-banana-peel)] to-[var(--color-banana-dark)] shadow-lg flex items-center justify-center">
+              <div className="h-5 w-5 text-white">{Icons.robot}</div>
             </div>
             <div>
-              <h2 className="font-display text-xl uppercase tracking-wider">
-                模型
-              </h2>
-              <p className="text-xs text-[var(--color-text-muted)] font-mono mt-1">
-                选择图片生成模型
-              </p>
+              <h2 className="font-display text-xl tracking-wide">模型</h2>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">选择图像生成模型</p>
             </div>
           </div>
 
           <div>
             <label className="label-brutal">生成模型</label>
             {availableModels.length > 0 ? (
-              <select
-                className="select-brutal"
-                value={localParams.model}
-                onChange={(e) => updateParam('model', e.target.value)}
-              >
+              <select className="select-brutal" value={localParams.model} onChange={(e) => updateParam('model', e.target.value)}>
                 <option value="">使用默认模型</option>
                 {availableModels.map((model) => (
                   <option key={model} value={model}>
@@ -287,61 +238,52 @@ export default function GeneratorPanel({
                 <input
                   type="text"
                   className="input-brutal"
-                  placeholder={apiConfig.model || '输入模型名称，如: nano-banana-pro'}
+                  placeholder={apiConfig.model || '例如：nano-banana-pro'}
                   value={localParams.model}
                   onChange={(e) => updateParam('model', e.target.value)}
                 />
-                <p className="text-xs text-[var(--color-text-muted)] mt-3 font-mono">
-                  配置 API 后可自动获取可用模型
-                </p>
+                <p className="mt-2 text-xs text-[var(--color-text-muted)]">配置 API 后可自动拉取可用模型。</p>
               </>
             )}
           </div>
         </section>
 
-        {/* Advanced Settings Toggle */}
         <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="w-full flex items-center justify-between p-5 bg-white/60 border border-[rgba(42,36,32,0.1)] rounded-xl hover:bg-white hover:shadow-md transition-all duration-300"
+          type="button"
+          onClick={() => setShowAdvanced((v) => !v)}
+          className="flex w-full items-center justify-between rounded-2xl border border-[rgba(42,36,32,0.12)] bg-white/65 p-4 transition-all duration-300 hover:bg-white hover:shadow-sm"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 text-[var(--color-text-secondary)]">
-              {Icons.cog}
-            </div>
-            <span className="font-display text-sm uppercase tracking-wider">
-              高级设置
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="h-5 w-5 text-[var(--color-text-secondary)]">{Icons.cog}</div>
+            <span className="text-sm font-medium tracking-wide">高级设置</span>
           </div>
-          <svg 
-            className={`w-5 h-5 text-[var(--color-text-muted)] transform transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]`}
+          <svg
+            className="h-5 w-5 text-[var(--color-text-muted)] transition-transform duration-500"
             style={{ transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)' }}
-            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
           >
             <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
-        {/* Advanced Settings Panel */}
-        <div 
-          className={`overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            showAdvanced ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <div className="space-y-6 p-6 bg-white/80 backdrop-blur-sm border border-[rgba(42,36,32,0.08)] rounded-xl shadow-sm">
-            {/* Steps */}
+        <div className={`overflow-hidden transition-all duration-700 ${showAdvanced ? 'max-h-[620px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="space-y-6 rounded-2xl border border-[rgba(42,36,32,0.08)] bg-white/75 p-5 backdrop-blur-sm shadow-sm">
             <div>
               <label className="label-brutal">采样步数</label>
-              <div className="flex gap-3 mb-4">
+              <div className="mb-3 grid grid-cols-4 gap-2">
                 {STEP_PRESETS.map((preset) => (
                   <button
                     key={preset.value}
+                    type="button"
                     onClick={() => updateParam('steps', preset.value)}
-                    className={`flex-1 py-3 text-xs font-mono border-2 transition-all duration-300 ${
+                    className={`rounded-xl border px-2.5 py-2 text-xs transition-all ${
                       localParams.steps === preset.value
-                        ? 'bg-[var(--color-text-primary)] text-white border-transparent'
-                        : 'bg-white/60 border-transparent hover:border-[rgba(42,36,32,0.2)]'
+                        ? 'border-transparent bg-[var(--color-text-primary)] text-white'
+                        : 'border-[rgba(42,36,32,0.12)] bg-white/70'
                     }`}
-                    style={{ borderRadius: 'var(--radius-md)' }}
                   >
                     {preset.label}
                   </button>
@@ -352,15 +294,12 @@ export default function GeneratorPanel({
                 min={10}
                 max={150}
                 value={localParams.steps}
-                onChange={(e) => updateParam('steps', parseInt(e.target.value))}
-                className="w-full h-2 bg-[var(--color-bg-secondary)] rounded-full appearance-none cursor-pointer accent-[var(--color-accent-highlight)]"
+                onChange={(e) => updateParam('steps', parseInt(e.target.value, 10))}
+                className="h-2 w-full cursor-pointer rounded-full accent-[var(--color-accent-highlight)]"
               />
-              <div className="text-right text-sm font-mono text-[var(--color-text-muted)] mt-2">
-                {localParams.steps} 步
-              </div>
+              <div className="mt-1.5 text-right text-xs text-[var(--color-text-muted)]">{localParams.steps} steps</div>
             </div>
 
-            {/* Guidance Scale */}
             <div>
               <label className="label-brutal">引导强度 (CFG)</label>
               <input
@@ -370,82 +309,63 @@ export default function GeneratorPanel({
                 step={0.5}
                 value={localParams.guidance}
                 onChange={(e) => updateParam('guidance', parseFloat(e.target.value))}
-                className="w-full h-2 bg-[var(--color-bg-secondary)] rounded-full appearance-none cursor-pointer accent-[var(--color-accent-highlight)]"
+                className="h-2 w-full cursor-pointer rounded-full accent-[var(--color-accent-highlight)]"
               />
-              <div className="text-right text-sm font-mono text-[var(--color-text-muted)] mt-2">
-                {localParams.guidance.toFixed(1)}
-              </div>
+              <div className="mt-1.5 text-right text-xs text-[var(--color-text-muted)]">{localParams.guidance.toFixed(1)}</div>
             </div>
 
-            {/* Seed */}
             <div>
               <label className="label-brutal">随机种子</label>
-              <div className="flex gap-3">
+              <div className="flex gap-2.5">
                 <input
                   type="number"
-                  className="input-brutal flex-1"
+                  className="input-brutal min-w-0 flex-1"
                   placeholder="随机"
                   value={localParams.seed ?? ''}
-                  onChange={(e) => updateParam('seed', e.target.value ? parseInt(e.target.value) : null)}
+                  onChange={(e) => updateParam('seed', e.target.value ? parseInt(e.target.value, 10) : null)}
                 />
-                <button
-                  onClick={generateRandomSeed}
-                  className="btn-brutal btn-brutal--secondary px-5 flex items-center gap-2"
-                  title="生成随机种子"
-                >
-                  <div className="w-4 h-4">{Icons.dice}</div>
+                <button type="button" onClick={generateRandomSeed} className="btn-brutal btn-brutal--secondary px-3.5" title="随机种子">
+                  <div className="h-4 w-4">{Icons.dice}</div>
                 </button>
-                <button
-                  onClick={clearSeed}
-                  className="btn-brutal btn-brutal--outline px-5"
-                  title="清除种子"
-                >
-                  <div className="w-4 h-4">{Icons.close}</div>
+                <button type="button" onClick={clearSeed} className="btn-brutal btn-brutal--outline px-3.5" title="清空种子">
+                  <div className="h-4 w-4">{Icons.close}</div>
                 </button>
               </div>
-              <p className="text-xs text-[var(--color-text-muted)] mt-3 font-mono">
-                相同种子 + 相同参数 = 相同结果
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Error Display */}
         {error && (
-          <div className="p-6 bg-red-50 border border-red-200 text-red-700 font-mono text-sm rounded-xl animate-fade-in">
-            <div className="flex items-start gap-4">
-              <div className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5">
-                {Icons.warning}
-              </div>
-              <div className="whitespace-pre-wrap">
-                {error}
-              </div>
+          <div className="animate-fade-in rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 h-4 w-4">{Icons.warning}</div>
+              <div className="whitespace-pre-wrap">{error}</div>
             </div>
           </div>
         )}
 
-        {/* Generate Button */}
-        <button
-          onClick={onGenerate}
-          disabled={isGenerating || !localParams.prompt.trim()}
-          className={`w-full btn-brutal btn-brutal--primary py-6 text-lg animate-fade-scale stagger-5 flex items-center justify-center gap-4 ${
-            isGenerating ? 'animate-pulse cursor-wait' : ''
-          } ${!localParams.prompt.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {isGenerating ? (
-            <>
-              <div className="w-6 h-6 animate-spin">
-                {Icons.hourglass}
-              </div>
-              <span>生成中...</span>
-            </>
-          ) : (
-            <>
-              <span className="text-2xl">🍌</span>
-              <span>生成图像</span>
-            </>
-          )}
-        </button>
+        <div className="sticky bottom-0 z-10 -mx-5 border-t border-[rgba(42,36,32,0.08)] bg-[rgba(var(--color-bg-primary-rgb),0.92)] px-5 pb-2 pt-4 backdrop-blur-md lg:-mx-7 lg:px-7">
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={isGenerating || !localParams.prompt.trim()}
+            className={`btn-brutal btn-brutal--primary flex w-full items-center justify-center gap-3 py-4 text-base animate-fade-scale stagger-5 ${
+              isGenerating ? 'animate-pulse cursor-wait' : ''
+            } ${!localParams.prompt.trim() ? 'cursor-not-allowed opacity-50' : ''}`}
+          >
+            {isGenerating ? (
+              <>
+                <div className="h-5 w-5 animate-spin">{Icons.hourglass}</div>
+                <span>生成中...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-xl">🍌</span>
+                <span>生成图像</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

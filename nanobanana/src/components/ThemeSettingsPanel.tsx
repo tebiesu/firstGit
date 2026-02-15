@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -9,26 +9,43 @@ interface ThemeSettingsPanelProps {
   onClose: () => void;
 }
 
+const T = {
+  title: '\u4e3b\u9898\u8bbe\u7f6e',
+  mode: '\u5916\u89c2\u6a21\u5f0f',
+  light: '\u6d45\u8272\u6a21\u5f0f',
+  dark: '\u6df1\u8272\u6a21\u5f0f',
+  switchDark: '\u5207\u6362\u6df1\u8272',
+  switchLight: '\u5207\u6362\u6d45\u8272',
+  bg: '\u80cc\u666f\u56fe\u7247',
+  upload: '\u70b9\u51fb\u4e0a\u4f20\u80cc\u666f\u56fe\u7247',
+  choose: '\u9009\u62e9\u56fe\u7247',
+  replace: '\u66f4\u6362\u80cc\u666f\u56fe',
+  blur: '\u80cc\u666f\u6a21\u7cca',
+  transparency: '\u754c\u9762\u900f\u660e\u5ea6',
+  glass: '\u6bdb\u73bb\u7483\u6548\u679c',
+  glassDesc: '\u8ba9\u9762\u677f\u5c42\u6b21\u66f4\u67d4\u548c\u3002',
+  done: '\u5b8c\u6210',
+  pickImageFile: '\u8bf7\u9009\u62e9\u56fe\u7247\u6587\u4ef6\u3002',
+  tooLarge: '\u56fe\u7247\u5927\u5c0f\u4e0d\u80fd\u8d85\u8fc7 5MB\u3002',
+};
+
 export default function ThemeSettingsPanel({ isOpen, onClose }: ThemeSettingsPanelProps) {
   const { theme, toggleTheme, settings, updateSettings } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
-  // 处理图片上传
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 检查文件类型
     if (!file.type.startsWith('image/')) {
-      alert('请选择图片文件');
+      alert(T.pickImageFile);
       return;
     }
 
-    // 检查文件大小 (最大 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('图片大小不能超过 5MB');
+      alert(T.tooLarge);
       return;
     }
 
@@ -40,346 +57,77 @@ export default function ThemeSettingsPanel({ isOpen, onClose }: ThemeSettingsPan
     reader.readAsDataURL(file);
   };
 
-  // 清除背景图片
-  const clearBackgroundImage = () => {
-    updateSettings({ backgroundImage: '' });
-  };
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-fade-in"
-        onClick={onClose}
-      />
-      
-      {/* Panel */}
-      <div 
-        className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl animate-fade-scale overflow-hidden max-h-[90vh] overflow-y-auto"
-        style={{ 
-          backgroundColor: 'var(--color-bg-primary)',
-          border: '1px solid var(--border-light)'
-        }}
-      >
-        {/* Header */}
-        <div 
-          className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b backdrop-blur-sm"
-          style={{ 
-            borderColor: 'rgba(42, 36, 32, 0.08)',
-            backgroundColor: 'rgba(var(--color-bg-primary-rgb, 250, 247, 242), 0.9)'
-          }}
-        >
-          <h2 
-            className="text-lg font-bold font-mono"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            主题设置
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg transition-all duration-200 hover:bg-black/5"
-            style={{ color: 'var(--color-text-secondary)' }}
-          >
-            <div className="w-5 h-5">{Icons.close}</div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/34 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+
+      <div className="card-brutal relative flex h-[min(92vh,780px)] w-full max-w-xl flex-col overflow-hidden animate-fade-scale">
+        <div className="flex shrink-0 items-center justify-between border-b border-[rgba(42,36,32,0.08)] bg-[rgba(var(--color-bg-primary-rgb),0.9)] px-5 py-4 backdrop-blur-md">
+          <h2 className="text-lg font-semibold">{T.title}</h2>
+          <button onClick={onClose} className="rounded-lg p-2 text-[var(--color-text-secondary)] hover:bg-black/5" aria-label="close">
+            <div className="h-5 w-5">{Icons.close}</div>
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* 主题切换 */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div 
-                className="font-medium"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                外观模式
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5 lg:p-6">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">{T.mode}</div>
+                <div className="mt-1 text-sm text-[var(--color-text-muted)]">{theme === 'light' ? T.light : T.dark}</div>
               </div>
-              <div 
-                className="text-sm mt-1"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                {theme === 'light' ? '当前：日间模式' : '当前：夜间模式'}
-              </div>
+              <button onClick={toggleTheme} className="btn-brutal btn-brutal--secondary px-4 py-2">
+                <div className="h-4 w-4">{theme === 'light' ? Icons.moon : Icons.sun}</div>
+                {theme === 'light' ? T.switchDark : T.switchLight}
+              </button>
             </div>
-            <button
-              onClick={toggleTheme}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300"
-              style={{ 
-                backgroundColor: 'var(--color-bg-secondary)',
-                color: 'var(--color-text-primary)'
-              }}
-            >
-              <div className="w-5 h-5">
-                {theme === 'light' ? Icons.moon : Icons.sun}
-              </div>
-              <span className="font-mono text-sm">
-                {theme === 'light' ? '夜间' : '日间'}
-              </span>
-            </button>
-          </div>
+          </section>
 
-          {/* 分割线 */}
-          <div className="border-t" style={{ borderColor: 'rgba(42, 36, 32, 0.08)' }} />
-
-          {/* 背景图片 */}
-          <div>
-            <div 
-              className="font-medium mb-3"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              背景图片
-            </div>
-            
-            {/* 图片预览 */}
+          <section className="space-y-3 border-t border-[rgba(42,36,32,0.08)] pt-4">
+            <div className="font-medium">{T.bg}</div>
             {settings.backgroundImage ? (
-              <div className="relative group">
-                <div 
-                  className="w-full h-32 rounded-xl bg-cover bg-center border"
-                  style={{ 
-                    backgroundImage: `url(${settings.backgroundImage})`,
-                    borderColor: 'rgba(42, 36, 32, 0.1)'
-                  }}
-                />
-                <button
-                  onClick={clearBackgroundImage}
-                  className="absolute top-2 right-2 p-2 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  title="移除背景"
-                >
-                  <div className="w-4 h-4 text-white">{Icons.trash}</div>
+              <div className="group relative overflow-hidden rounded-xl border border-[rgba(42,36,32,0.12)]">
+                <div className="h-32 w-full bg-cover bg-center" style={{ backgroundImage: `url(${settings.backgroundImage})` }} />
+                <button onClick={() => updateSettings({ backgroundImage: '' })} className="absolute right-2 top-2 rounded-lg bg-black/55 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100" title="remove">
+                  <div className="h-4 w-4">{Icons.trash}</div>
                 </button>
               </div>
             ) : (
-              <div 
-                className="w-full h-32 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer hover:border-[var(--color-accent-highlight)] transition-colors duration-200"
-                style={{ borderColor: 'rgba(42, 36, 32, 0.2)' }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="text-center">
-                  <div className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                    {Icons.image}
-                  </div>
-                  <div style={{ color: 'var(--color-text-muted)' }} className="text-sm">
-                    点击上传背景图片
-                  </div>
-                </div>
-              </div>
+              <button onClick={() => fileInputRef.current?.click()} className="flex h-32 w-full items-center justify-center rounded-xl border-2 border-dashed border-[rgba(42,36,32,0.2)] text-sm text-[var(--color-text-muted)] hover:border-[var(--color-accent-highlight)]">
+                {T.upload}
+              </button>
             )}
 
-            {/* 隐藏的文件输入 */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            <button onClick={() => fileInputRef.current?.click()} className="btn-brutal btn-brutal--secondary w-full">{settings.backgroundImage ? T.replace : T.choose}</button>
+          </section>
 
-            {/* 上传按钮 */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full mt-3 py-2.5 rounded-xl font-mono text-sm transition-all duration-300"
-              style={{ 
-                backgroundColor: 'var(--color-bg-secondary)',
-                color: 'var(--color-text-secondary)'
-              }}
-            >
-              {settings.backgroundImage ? '更换图片' : '选择图片'}
-            </button>
-          </div>
-
-          {/* 背景模糊 */}
-          {settings.backgroundImage && (
+          <section className="space-y-4 border-t border-[rgba(42,36,32,0.08)] pt-4">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div 
-                    className="font-medium"
-                    style={{ color: 'var(--color-text-primary)' }}
-                  >
-                    背景模糊
-                  </div>
-                  <div 
-                    className="text-sm mt-1"
-                    style={{ color: 'var(--color-text-muted)' }}
-                  >
-                    模糊背景图片
-                  </div>
-                </div>
-                <span 
-                  className="font-mono text-lg font-bold"
-                  style={{ color: 'var(--color-accent-highlight)' }}
-                >
-                  {settings.backgroundBlur}px
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="20"
-                value={settings.backgroundBlur}
-                onChange={(e) => updateSettings({ backgroundBlur: parseInt(e.target.value) })}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                style={{
-                  background: `linear-gradient(to right, var(--color-accent-highlight) ${settings.backgroundBlur / 20 * 100}%, var(--color-bg-tertiary) ${settings.backgroundBlur / 20 * 100}%)`
-                }}
-              />
+              <div className="mb-2 flex items-center justify-between"><span className="font-medium">{T.blur}</span><span className="text-sm text-[var(--color-accent-highlight)]">{settings.backgroundBlur}px</span></div>
+              <input type="range" min={0} max={20} value={settings.backgroundBlur} onChange={(e) => updateSettings({ backgroundBlur: parseInt(e.target.value, 10) })} className="h-2 w-full cursor-pointer rounded-full accent-[var(--color-accent-highlight)]" />
             </div>
-          )}
-
-          {/* 分割线 */}
-          <div className="border-t" style={{ borderColor: 'rgba(42, 36, 32, 0.08)' }} />
-
-          {/* 毛玻璃效果 */}
-          <div className="flex items-center justify-between">
             <div>
-              <div 
-                className="font-medium"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                毛玻璃效果
-              </div>
-              <div 
-                className="text-sm mt-1"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                为界面元素添加模糊背景
-              </div>
+              <div className="mb-2 flex items-center justify-between"><span className="font-medium">{T.transparency}</span><span className="text-sm text-[var(--color-accent-highlight)]">{settings.transparency}%</span></div>
+              <input type="range" min={0} max={100} value={settings.transparency} onChange={(e) => updateSettings({ transparency: parseInt(e.target.value, 10) })} className="h-2 w-full cursor-pointer rounded-full accent-[var(--color-accent-highlight)]" />
             </div>
-            <button
-              onClick={() => updateSettings({ glassEffect: !settings.glassEffect })}
-              className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
-                settings.glassEffect ? '' : 'opacity-60'
-              }`}
-              style={{
-                backgroundColor: settings.glassEffect ? 'var(--color-accent-highlight)' : 'var(--color-bg-tertiary)'
-              }}
-            >
-              <div 
-                className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${
-                  settings.glassEffect ? 'left-7' : 'left-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* 透明度滑块 */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <div 
-                  className="font-medium"
-                  style={{ color: 'var(--color-text-primary)' }}
-                >
-                  背景透明度
-                </div>
-                <div 
-                  className="text-sm mt-1"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  {settings.backgroundImage ? '调整覆盖层透明度' : '调整界面背景的透明程度'}
-                </div>
-              </div>
-              <span 
-                className="font-mono text-lg font-bold"
-                style={{ color: 'var(--color-accent-highlight)' }}
-              >
-                {settings.transparency}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={settings.transparency}
-              onChange={(e) => updateSettings({ transparency: parseInt(e.target.value) })}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, var(--color-accent-highlight) ${settings.transparency}%, var(--color-bg-tertiary) ${settings.transparency}%)`
-              }}
-            />
-            <div className="flex justify-between mt-2">
-              <span 
-                className="text-xs"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                完全透明
-              </span>
-              <span 
-                className="text-xs"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                不透明
-              </span>
-            </div>
-          </div>
-
-          {/* 预览 */}
-          <div 
-            className="relative overflow-hidden rounded-xl border transition-all duration-300"
-            style={{ 
-              borderColor: 'rgba(42, 36, 32, 0.1)',
-              minHeight: '80px'
-            }}
-          >
-            {/* 背景层 */}
-            {settings.backgroundImage && (
-              <div 
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ 
-                  backgroundImage: `url(${settings.backgroundImage})`,
-                  filter: `blur(${settings.backgroundBlur}px)`,
-                  transform: `scale(${settings.backgroundScale / 100})`
-                }}
-              />
+            {!settings.backgroundImage && (
+              <p className="text-xs text-[var(--color-text-muted)]">\u672a\u8bbe\u7f6e\u80cc\u666f\u56fe\u65f6\uff0c\u6a21\u7cca\u4e0e\u900f\u660e\u5ea6\u6548\u679c\u4e3b\u8981\u5f71\u54cd\u754c\u9762\u5c42\u6b21\u3002</p>
             )}
-            
-            {/* 内容层 - 透明度控制 */}
-            <div 
-              className="relative p-4 transition-all duration-300"
-              style={{ 
-                backgroundColor: settings.backgroundImage 
-                  ? `rgba(var(--color-bg-primary-rgb, 250, 247, 242), ${(100 - settings.transparency) / 100 * 0.9})`
-                  : 'var(--color-bg-secondary)',
-                backdropFilter: settings.glassEffect && settings.backgroundImage ? 'blur(16px)' : 'none',
-                opacity: settings.backgroundImage ? settings.transparency / 100 : 1
-              }}
-            >
-              <div 
-                className="text-sm font-medium"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                效果预览
-              </div>
-              <div 
-                className="text-xs mt-1"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                {settings.glassEffect ? '毛玻璃' : '无毛玻璃'} · 透明度 {settings.transparency}%
-                {settings.backgroundImage && ` · 背景模糊 ${settings.backgroundBlur}px`}
-              </div>
+          </section>
+
+          <section className="border-t border-[rgba(42,36,32,0.08)] pt-4">
+            <div className="flex items-center justify-between">
+              <div><div className="font-medium">{T.glass}</div><div className="mt-1 text-sm text-[var(--color-text-muted)]">{T.glassDesc}</div></div>
+              <button onClick={() => updateSettings({ glassEffect: !settings.glassEffect })} className={`relative h-8 w-14 rounded-full transition-colors ${settings.glassEffect ? 'bg-[var(--color-accent-highlight)]' : 'bg-[var(--color-bg-tertiary)]'}`}>
+                <div className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${settings.glassEffect ? 'left-7' : 'left-1'}`} />
+              </button>
             </div>
-          </div>
+          </section>
         </div>
 
-        {/* Footer */}
-        <div 
-          className="sticky bottom-0 px-6 py-4 border-t backdrop-blur-sm"
-          style={{ 
-            borderColor: 'rgba(42, 36, 32, 0.08)',
-            backgroundColor: 'rgba(var(--color-bg-primary-rgb, 250, 247, 242), 0.9)'
-          }}
-        >
-          <button
-            onClick={onClose}
-            className="w-full py-3 rounded-xl font-mono font-bold transition-all duration-300"
-            style={{ 
-              backgroundColor: 'var(--color-bg-secondary)',
-              color: 'var(--color-text-primary)'
-            }}
-          >
-            完成
-          </button>
+        <div className="shrink-0 border-t border-[rgba(42,36,32,0.08)] bg-[rgba(var(--color-bg-primary-rgb),0.9)] p-4 backdrop-blur-md">
+          <button onClick={onClose} className="btn-brutal btn-brutal--primary w-full py-3">{T.done}</button>
         </div>
       </div>
     </div>
