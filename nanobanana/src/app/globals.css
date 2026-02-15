@@ -75,6 +75,49 @@
 }
 
 /* ========================================
+   DARK MODE
+   ======================================== */
+
+.dark {
+  /* Dark mode colors - 深色温暖系 */
+  --color-bg-primary: #1a1816;
+  --color-bg-secondary: #252220;
+  --color-bg-tertiary: #2f2b28;
+  
+  /* Banana theme - dark mode adjusted */
+  --color-banana-light: #3d3620;
+  --color-banana-medium: #ffd54f;
+  --color-banana-dark: #ffb300;
+  --color-banana-peel: #e6c42c;
+  
+  /* Accent colors remain similar but slightly brighter */
+  --color-accent-primary: #e0b589;
+  --color-accent-secondary: #c9a035;
+  --color-accent-highlight: #ff8a5c;
+  
+  /* Coral warmth */
+  --color-coral: #e0886c;
+  --color-coral-light: #b87058;
+  
+  /* Text colors - inverted */
+  --color-text-primary: #f5f0e8;
+  --color-text-secondary: #b8a898;
+  --color-text-muted: #7a6e62;
+  --color-text-inverse: #1a1816;
+  
+  /* Soft borders - dark mode */
+  --border-light: 1px solid rgba(245, 240, 232, 0.1);
+  --border-medium: 2px solid rgba(245, 240, 232, 0.15);
+  
+  /* Soft shadows - dark mode */
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --shadow-soft-md: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-soft-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 40px rgba(255, 138, 92, 0.15);
+  --shadow-banana: 0 4px 20px rgba(255, 213, 79, 0.15);
+}
+
+/* ========================================
    BASE STYLES
    ======================================== */
 
@@ -98,6 +141,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.5s ease, color 0.3s ease;
 }
 
 /* Subtle grain texture */
@@ -112,6 +156,10 @@ body::before {
   opacity: 0.015;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   z-index: 9999;
+}
+
+.dark body::before {
+  opacity: 0.03;
 }
 
 /* ========================================
@@ -226,6 +274,10 @@ code, pre {
   box-shadow: none;
 }
 
+.dark .btn-brutal--outline {
+  border-color: rgba(245, 240, 232, 0.2);
+}
+
 .btn-brutal--outline:hover {
   border-color: var(--color-accent-highlight);
   background-color: rgba(255, 107, 53, 0.05);
@@ -233,7 +285,7 @@ code, pre {
 
 /* Soft Card */
 .card-brutal {
-  background: linear-gradient(145deg, white 0%, var(--color-bg-primary) 100%);
+  background: linear-gradient(145deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
   border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft-md);
@@ -243,6 +295,10 @@ code, pre {
   overflow: hidden;
 }
 
+.dark .card-brutal {
+  background: linear-gradient(145deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
+}
+
 .card-brutal::before {
   content: '';
   position: absolute;
@@ -250,7 +306,7 @@ code, pre {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
 }
 
 .card-brutal:hover {
@@ -264,13 +320,18 @@ code, pre {
   padding: var(--space-md) var(--space-lg);
   font-family: var(--font-mono);
   font-size: 0.9rem;
-  background-color: white;
+  background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   border: 2px solid rgba(42, 36, 32, 0.1);
   border-radius: var(--radius-md);
   outline: none;
   transition: all var(--transition-base);
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.dark .input-brutal {
+  background-color: var(--color-bg-secondary);
+  border-color: rgba(245, 240, 232, 0.1);
 }
 
 .input-brutal:focus {
@@ -289,7 +350,7 @@ code, pre {
   padding-right: 3rem;
   font-family: var(--font-mono);
   font-size: 0.9rem;
-  background-color: white;
+  background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   border: 2px solid rgba(42, 36, 32, 0.1);
   border-radius: var(--radius-md);
@@ -299,6 +360,12 @@ code, pre {
   background-repeat: no-repeat;
   background-position: right 1rem center;
   transition: all var(--transition-base);
+}
+
+.dark .select-brutal {
+  background-color: var(--color-bg-secondary);
+  border-color: rgba(245, 240, 232, 0.1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b8a898' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .select-brutal:focus {
@@ -484,6 +551,10 @@ code, pre {
   -webkit-backdrop-filter: blur(10px);
 }
 
+.dark .glass-effect {
+  background: rgba(37, 34, 32, 0.7);
+}
+
 /* ========================================
    SCROLLBAR
    ======================================== */
@@ -588,4 +659,12 @@ code, pre {
 
 .border-gradient:hover::after {
   opacity: 1;
+}
+
+/* ========================================
+   DARK MODE TRANSITION
+   ======================================== */
+
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Mono, IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const spaceMono = Space_Mono({
   subsets: ["latin"],
@@ -37,9 +38,12 @@ export default function RootLayout({
     <html 
       lang="zh-CN" 
       className={`${spaceMono.variable} ${ibmPlexSans.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
-      <body className="antialiased">
-        {children}
+      <body className="antialiased theme-transition">
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

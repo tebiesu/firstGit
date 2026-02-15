@@ -464,7 +464,7 @@ export default function ImageDisplay({
                       {Math.round(zoomLevel * 100)}%
                     </span>
                     <button
-                      onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.25))}
+                      onClick={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
                       className="flex-1 py-3 text-lg bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] rounded-xl transition-all duration-300 flex items-center justify-center"
                     >
                       <div className="w-5 h-5">{Icons.plus}</div>

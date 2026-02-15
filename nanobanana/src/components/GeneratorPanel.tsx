@@ -28,12 +28,9 @@ const ASPECT_RATIOS = [
 ];
 
 const RESOLUTIONS = [
-  { value: '512', label: '512', desc: '快速' },
-  { value: '768', label: '768', desc: '平衡' },
-  { value: '1024', label: '1024', desc: '标准' },
-  { value: '1280', label: '1280', desc: '高清' },
-  { value: '1536', label: '1536', desc: '超清' },
-  { value: '2048', label: '2048', desc: '极致' },
+  { value: '1024', label: '1K', desc: '标准' },
+  { value: '2048', label: '2K', desc: '高清' },
+  { value: '4096', label: '4K', desc: '极致' },
 ];
 
 const STEP_PRESETS = [
