@@ -59,25 +59,44 @@ export default function Header({ onApiClick, isApiConfigured }: HeaderProps) {
   }, [displayText, isTyping, isPaused, currentSlogan]);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-[var(--color-bg-secondary)]/80 backdrop-blur-xl border-b border-[rgba(42,36,32,0.08)] dark:border-[rgba(245,240,232,0.08)] transition-all duration-300">
+    <header 
+      className="sticky top-0 z-50 backdrop-blur-xl border-b transition-all duration-300"
+      style={{ 
+        backgroundColor: 'var(--color-bg-primary)',
+        borderColor: 'rgba(var(--border-color-rgb, 42, 36, 32), 0.08)'
+      }}
+    >
       <div className="max-w-[1800px] mx-auto px-4 lg:px-6 py-4 lg:py-5 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-4">
           <div className="relative group">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--color-banana-light)] to-[var(--color-banana-medium)] flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+            <div 
+              className="w-11 h-11 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105"
+              style={{
+                background: `linear-gradient(135deg, var(--color-banana-light) 0%, var(--color-banana-medium) 100%)`
+              }}
+            >
               <span className="text-2xl">🍌</span>
             </div>
-            <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-[var(--color-banana-medium)] to-[var(--color-accent-highlight)] opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-300 -z-10"></div>
           </div>
           
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold tracking-tight text-[var(--color-text-primary)] flex items-center gap-2">
+            <h1 
+              className="text-xl lg:text-2xl font-bold tracking-tight flex items-center gap-2"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
               <span className="font-mono">NANOBANANA</span>
             </h1>
             <div className="h-5 flex items-center">
-              <span className="text-xs lg:text-sm text-[var(--color-text-muted)] font-mono overflow-hidden whitespace-nowrap">
+              <span 
+                className="text-xs lg:text-sm font-mono overflow-hidden whitespace-nowrap"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
                 {displayText}
-                <span className={`inline-block w-0.5 h-4 ml-0.5 bg-[var(--color-accent-highlight)] ${isTyping && !isPaused ? 'animate-pulse' : ''}`}></span>
+                <span 
+                  className={`inline-block w-0.5 h-4 ml-0.5 ${isTyping && !isPaused ? 'animate-pulse' : ''}`}
+                  style={{ backgroundColor: 'var(--color-accent-highlight)' }}
+                ></span>
               </span>
             </div>
           </div>
@@ -88,10 +107,16 @@ export default function Header({ onApiClick, isApiConfigured }: HeaderProps) {
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2.5 lg:p-3 rounded-xl bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-all duration-300 group"
+            className="p-2.5 lg:p-3 rounded-xl transition-all duration-300 group"
+            style={{ 
+              backgroundColor: 'var(--color-bg-secondary)',
+            }}
             title={theme === 'light' ? '切换到夜间模式' : '切换到日间模式'}
           >
-            <div className="w-5 h-5 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent-highlight)] transition-colors duration-300">
+            <div 
+              className="w-5 h-5 transition-colors duration-300 group-hover:opacity-80"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
               {theme === 'light' ? Icons.moon : Icons.sun}
             </div>
           </button>
@@ -99,12 +124,19 @@ export default function Header({ onApiClick, isApiConfigured }: HeaderProps) {
           {/* API Settings */}
           <button
             onClick={onApiClick}
-            className="flex items-center gap-2 lg:gap-3 px-4 lg:px-5 py-2.5 lg:py-3 rounded-xl bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-all duration-300 group"
+            className="flex items-center gap-2 lg:gap-3 px-4 lg:px-5 py-2.5 lg:py-3 rounded-xl transition-all duration-300 group"
+            style={{ backgroundColor: 'var(--color-bg-secondary)' }}
           >
-            <div className="w-5 h-5 text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent-highlight)] transition-colors duration-300">
+            <div 
+              className="w-5 h-5 transition-colors duration-300"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
               {Icons.settings}
             </div>
-            <span className="hidden sm:inline font-mono text-sm text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors duration-300">
+            <span 
+              className="hidden sm:inline font-mono text-sm transition-colors duration-300"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
               API 设置
             </span>
             {isApiConfigured && (

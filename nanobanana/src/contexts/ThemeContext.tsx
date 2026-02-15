@@ -16,17 +16,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
+  // 初始化主题
   useEffect(() => {
-    setMounted(true);
-    // 从 localStorage 读取主题
     const savedTheme = localStorage.getItem('nanobanana-theme') as Theme;
     if (savedTheme) {
       setThemeState(savedTheme);
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
     } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       setThemeState('dark');
+      document.documentElement.classList.add('dark');
     }
+    setMounted(true);
   }, []);
 
+  // 主题变化时更新 DOM
   useEffect(() => {
     if (!mounted) return;
     
@@ -47,10 +52,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(newTheme);
   };
 
-  if (!mounted) {
-    return null;
-  }
-
+  // 始终渲染 children，避免闪烁
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}

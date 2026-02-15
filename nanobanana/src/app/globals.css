@@ -78,7 +78,8 @@
    DARK MODE
    ======================================== */
 
-.dark {
+html.dark,
+:where(.dark) {
   /* Dark mode colors - 深色温暖系 */
   --color-bg-primary: #1a1816;
   --color-bg-secondary: #252220;
