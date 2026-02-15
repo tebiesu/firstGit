@@ -19,14 +19,24 @@ const SLOGANS = [
   '灵感即刻绽放',
 ];
 
-type TypingPhase = 'typing' | 'paused' | 'deleting' | 'switching';
+type TypingPhase = 'typing' | 'deleting' | 'switching';
 
 export default function Header({ onApiClick, isApiConfigured, onThemeClick }: HeaderProps) {
   const [currentSlogan, setCurrentSlogan] = useState(0);
   const [displayText, setDisplayText] = useState('');
   const [phase, setPhase] = useState<TypingPhase>('typing');
+  const [scrolled, setScrolled] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 滚动检测
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // 打字机效果
   useEffect(() => {
@@ -38,12 +48,11 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
           if (displayText.length < slogan.length) {
             timeoutRef.current = setTimeout(() => {
               setDisplayText(slogan.slice(0, displayText.length + 1));
-            }, 80);
+            }, 60);
           } else {
-            // 打完了，暂停
             timeoutRef.current = setTimeout(() => {
               setPhase('deleting');
-            }, 2000);
+            }, 2500);
           }
           break;
           
@@ -51,9 +60,8 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
           if (displayText.length > 0) {
             timeoutRef.current = setTimeout(() => {
               setDisplayText(slogan.slice(0, displayText.length - 1));
-            }, 40);
+            }, 30);
           } else {
-            // 删完了，切换到下一个
             setPhase('switching');
           }
           break;
@@ -76,8 +84,8 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
     <header 
       className="sticky top-0 z-50 border-b transition-all duration-300"
       style={{ 
-        backgroundColor: 'var(--color-bg-primary)',
-        backdropFilter: 'var(--glass-blur, blur(16px))',
+        backgroundColor: scrolled ? 'rgba(var(--color-bg-primary-rgb, 250, 247, 242), 0.85)' : 'var(--color-bg-primary)',
+        backdropFilter: scrolled ? 'blur(16px)' : 'none',
         borderColor: 'rgba(42, 36, 32, 0.08)'
       }}
     >
@@ -88,7 +96,8 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
             <div 
               className="w-11 h-11 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-105"
               style={{
-                background: `linear-gradient(135deg, var(--color-banana-light) 0%, var(--color-banana-medium) 100%)`
+                background: `linear-gradient(135deg, var(--color-banana-light) 0%, var(--color-banana-medium) 100%)`,
+                boxShadow: '0 4px 16px rgba(255, 213, 79, 0.25)'
               }}
             >
               <span className="text-2xl">🍌</span>
@@ -97,7 +106,7 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
           
           <div>
             <h1 
-              className="text-xl lg:text-2xl font-bold tracking-tight flex items-center gap-2"
+              className="text-xl lg:text-2xl font-bold tracking-tight"
               style={{ color: 'var(--color-text-primary)' }}
             >
               <span className="font-mono">香蕉皮</span>
@@ -119,7 +128,7 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 lg:gap-3">
-          {/* Theme Toggle - 点击切换日/夜间模式 */}
+          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
             className="p-2.5 lg:p-3 rounded-xl transition-all duration-300 group"
@@ -129,14 +138,14 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
             title={theme === 'light' ? '切换到夜间模式' : '切换到日间模式'}
           >
             <div 
-              className="w-5 h-5 transition-all duration-300"
+              className="w-5 h-5 transition-colors duration-300"
               style={{ color: 'var(--color-accent-highlight)' }}
             >
               {theme === 'light' ? Icons.moon : Icons.sun}
             </div>
           </button>
 
-          {/* Theme Settings - 打开主题设置面板 */}
+          {/* Theme Settings */}
           <button
             onClick={onThemeClick}
             className="p-2.5 lg:p-3 rounded-xl transition-all duration-300 group"
@@ -146,7 +155,7 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
             title="主题设置"
           >
             <div 
-              className="w-5 h-5 transition-all duration-300"
+              className="w-5 h-5 transition-colors duration-300"
               style={{ color: 'var(--color-text-secondary)' }}
             >
               {Icons.cog}
