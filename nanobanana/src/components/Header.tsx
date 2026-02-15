@@ -100,7 +100,7 @@ export default function Header({ onApiClick, isApiConfigured, onThemeClick }: He
               className="text-xl lg:text-2xl font-bold tracking-tight flex items-center gap-2"
               style={{ color: 'var(--color-text-primary)' }}
             >
-              <span className="font-mono">NANOBANANA</span>
+              <span className="font-mono">香蕉皮</span>
             </h1>
             <div className="h-5 flex items-center">
               <span 

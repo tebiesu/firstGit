@@ -24,7 +24,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const DEFAULT_SETTINGS: ThemeSettings = {
   glassEffect: true,
-  transparency: 85,
+  transparency: 100,
   backgroundImage: '',
   backgroundBlur: 0,
   backgroundScale: 100,

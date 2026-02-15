@@ -25,8 +25,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NANOBANANA 🍌 | AI Image Generation",
-  description: "Brutalist AI image generation with Claude aesthetics. Banana peel style.",
+  title: "香蕉皮 🍌 | AI 图像生成",
+  description: "粗犷主义 AI 图像生成平台，Claude 美学风格。香蕉皮，构建你的世界。",
+  icons: {
+    icon: '/banana.svg',
+    apple: '/banana.svg',
+  },
 };
 
 export default function RootLayout({

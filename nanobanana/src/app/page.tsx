@@ -418,16 +418,19 @@ export default function Home() {
         />
       )}
       
-      {/* 渐变背景层 */}
-      <div 
-        className="fixed inset-0 transition-opacity duration-300"
-        style={{ 
-          background: settings.backgroundImage 
-            ? `linear-gradient(135deg, rgba(var(--color-bg-primary-rgb, 250, 247, 242), ${settings.transparency / 100}) 0%, rgba(var(--color-bg-secondary-rgb, 240, 235, 227), ${settings.transparency / 100}) 100%)`
-            : 'linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%)',
-          backdropFilter: settings.glassEffect ? 'blur(var(--glass-blur, 16px))' : 'none'
-        }}
-      />
+      {/* 渐变背景层 - 透明度控制 */}
+      {(!settings.backgroundImage || settings.transparency < 100) && (
+        <div 
+          className="fixed inset-0 transition-opacity duration-300"
+          style={{ 
+            background: settings.backgroundImage 
+              ? `rgba(var(--color-bg-primary-rgb, 250, 247, 242), ${(100 - settings.transparency) / 100 * 0.95})`
+              : 'linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%)',
+            backdropFilter: settings.glassEffect && settings.backgroundImage ? 'blur(var(--glass-blur, 16px))' : 'none',
+            opacity: settings.backgroundImage ? settings.transparency / 100 : 1
+          }}
+        />
+      )}
       
       {/* 内容层 */}
       <div className="relative z-10 flex flex-col min-h-screen">

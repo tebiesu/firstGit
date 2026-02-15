@@ -277,7 +277,7 @@ export default function ThemeSettingsPanel({ isOpen, onClose }: ThemeSettingsPan
                   className="text-sm mt-1"
                   style={{ color: 'var(--color-text-muted)' }}
                 >
-                  调整界面背景的透明程度
+                  {settings.backgroundImage ? '调整覆盖层透明度' : '调整界面背景的透明程度'}
                 </div>
               </div>
               <span 
@@ -289,22 +289,37 @@ export default function ThemeSettingsPanel({ isOpen, onClose }: ThemeSettingsPan
             </div>
             <input
               type="range"
-              min="30"
+              min="0"
               max="100"
               value={settings.transparency}
               onChange={(e) => updateSettings({ transparency: parseInt(e.target.value) })}
               className="w-full h-2 rounded-full appearance-none cursor-pointer"
               style={{
-                background: `linear-gradient(to right, var(--color-accent-highlight) ${(settings.transparency - 30) / 70 * 100}%, var(--color-bg-tertiary) ${(settings.transparency - 30) / 70 * 100}%)`
+                background: `linear-gradient(to right, var(--color-accent-highlight) ${settings.transparency}%, var(--color-bg-tertiary) ${settings.transparency}%)`
               }}
             />
+            <div className="flex justify-between mt-2">
+              <span 
+                className="text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                完全透明
+              </span>
+              <span 
+                className="text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                不透明
+              </span>
+            </div>
           </div>
 
           {/* 预览 */}
           <div 
             className="relative overflow-hidden rounded-xl border transition-all duration-300"
             style={{ 
-              borderColor: 'rgba(42, 36, 32, 0.1)'
+              borderColor: 'rgba(42, 36, 32, 0.1)',
+              minHeight: '80px'
             }}
           >
             {/* 背景层 */}
@@ -319,14 +334,15 @@ export default function ThemeSettingsPanel({ isOpen, onClose }: ThemeSettingsPan
               />
             )}
             
-            {/* 内容层 */}
+            {/* 内容层 - 透明度控制 */}
             <div 
               className="relative p-4 transition-all duration-300"
               style={{ 
                 backgroundColor: settings.backgroundImage 
-                  ? `rgba(var(--color-bg-primary-rgb, 250, 247, 242), ${settings.transparency / 100})`
+                  ? `rgba(var(--color-bg-primary-rgb, 250, 247, 242), ${(100 - settings.transparency) / 100 * 0.9})`
                   : 'var(--color-bg-secondary)',
-                backdropFilter: settings.glassEffect ? 'blur(16px)' : 'none'
+                backdropFilter: settings.glassEffect && settings.backgroundImage ? 'blur(16px)' : 'none',
+                opacity: settings.backgroundImage ? settings.transparency / 100 : 1
               }}
             >
               <div 
